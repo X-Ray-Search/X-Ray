@@ -1,0 +1,27 @@
+/*
+ * main.css — Tailwind v4 CSS-first entry (no tailwind.config.js).
+ *
+ * Drop into `app/assets/css/main.css` and reference it from `nuxt.config.ts`:
+ *   css: ["~/assets/css/main.css"]
+ * Dark-first; pick your project's `--font-sans` and NuxtUI `primary`/`neutral` in app.config.ts.
+ * See docs/06-frontend-nuxt.md and docs/15-design-system.md.
+ */
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+@theme {
+	--font-sans: "Rubik", sans-serif;
+}
+
+:root {
+	color-scheme: dark;
+}
+
+html {
+	scroll-behavior: smooth;
+}
+
+/* slate-950 — the standard app background across the ecosystem. */
+.main-bg-color {
+	background-color: rgb(2 6 23);
+}

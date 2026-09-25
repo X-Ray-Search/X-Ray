@@ -1,0 +1,7 @@
+stages:
+  - test
+  - build
+
+include:
+  - local: ".gitlab/ci/testing.yml"
+  - local: ".gitlab/ci/build.yml"
