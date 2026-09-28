@@ -15,23 +15,24 @@ RUN bunx --bun nuxt prepare && bun run build
 
 
 FROM oven/bun:1-slim
-WORKDIR /app
-
+WORKDIR /opt/x-ray-search/search
+	
 ENV NODE_ENV=production \
 	PORT=12418 \
-	XRAY_DB_PATH=/data/db.sqlite \
+	XRAY_DB_PATH=/opt/x-ray-search/search/data/db.sqlite \
 	XRAY_DB_AUTO_MIGRATE=true \
-	XRAY_CONFIG_BASE_DIR=/data/config \
-	XRAY_LOG_DIR=/data/logs
+	XRAY_CONFIG_BASE_DIR=/opt/x-ray-search/search/config \
+	XRAY_LOG_DIR=/opt/x-ray-search/search/data/logs
 
-COPY --from=build /app/.output ./.output
+COPY --from=build /app/.output ./app/.output
 # Applied on start by DB.init (XRAY_DB_AUTO_MIGRATE).
-COPY --from=build /app/drizzle/migrations ./drizzle/migrations
+COPY --from=build /app/drizzle/migrations ./app/drizzle/migrations
 
-VOLUME /data
+VOLUME /opt/x-ray-search/search/data
+VOLUME /opt/x-ray-search/search/config
 EXPOSE 12418
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s \
-	CMD bun -e "fetch('http://127.0.0.1:12418/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+	CMD curl -f http://localhost:12418/health || exit 1
 
-CMD ["bun", "run", ".output/server/index.mjs"]
+CMD ["bun", "run", "./app/.output/server/index.mjs"]

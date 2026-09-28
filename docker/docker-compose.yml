@@ -21,8 +21,8 @@ services:
       # XRAY_SMTP_PASSWORD: secret
       # XRAY_SMTP_FROM: '"X-Ray" <noreply@example.com>'
     volumes:
-      - /opt/x-ray-search/search/data:/data
-      - /opt/x-ray-search/search/config:/app/config:ro
+      - /opt/x-ray-search/search/data:/opt/x-ray-search/search/data
+      - /opt/x-ray-search/search/config:/opt/x-ray-search/search/config
     restart: unless-stopped
 
   # Optional: a Tor SOCKS5 proxy. Add it under Administration → Proxies as
