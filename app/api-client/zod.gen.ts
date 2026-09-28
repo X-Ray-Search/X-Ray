@@ -260,12 +260,139 @@ export const zPostSearchAiResponse = z.object({
     message: z.literal('AI answer generated'),
     data: z.object({
         answer: z.string(),
-        model: z.string(),
+        model: z.string().nullable(),
         sources: z.array(z.object({
             index: z.number(),
             title: z.string(),
             url: z.string()
         }))
+    })
+});
+
+/**
+ * Chats retrieved
+ */
+export const zGetAiChatsResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Chats retrieved'),
+    data: z.array(z.object({
+        id: z.number(),
+        title: z.string(),
+        created_at: z.number(),
+        updated_at: z.number()
+    }))
+});
+
+export const zPostAiChatsBody = z.object({
+    messages: z.array(z.object({
+        role: z.enum(['user', 'assistant']),
+        content: z.string().min(1).max(20000),
+        sources: z.array(z.object({
+            index: z.int().gte(1).lte(100),
+            title: z.string().max(1000),
+            url: z.string().max(4096)
+        })).max(20).optional().default([])
+    })).max(20).optional().default([])
+});
+
+/**
+ * Chat created
+ */
+export const zPostAiChatsResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(201),
+    message: z.literal('Chat created'),
+    data: z.object({
+        id: z.number(),
+        title: z.string(),
+        created_at: z.number(),
+        updated_at: z.number()
+    })
+});
+
+export const zDeleteAiChatsByChatIdPath = z.object({
+    chatID: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Chat deleted
+ */
+export const zDeleteAiChatsByChatIdResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Chat deleted'),
+    data: z.null()
+});
+
+export const zGetAiChatsByChatIdPath = z.object({
+    chatID: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Chat retrieved
+ */
+export const zGetAiChatsByChatIdResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Chat retrieved'),
+    data: z.object({
+        id: z.number(),
+        title: z.string(),
+        created_at: z.number(),
+        updated_at: z.number(),
+        messages: z.array(z.object({
+            id: z.number(),
+            role: z.enum(['user', 'assistant']),
+            content: z.string(),
+            sources: z.array(z.object({
+                index: z.int().gte(1).lte(100),
+                title: z.string().max(1000),
+                url: z.string().max(4096)
+            })),
+            search_query: z.string().nullable(),
+            created_at: z.number()
+        }))
+    })
+});
+
+export const zPostAiChatsByChatIdMessagesBody = z.object({
+    content: z.string().min(1).max(2000),
+    language: z.string().regex(/^(all|[a-z]{2,3}(-[A-Za-z]{2,4})?)$/).optional(),
+    stream: z.boolean().optional().default(true)
+});
+
+export const zPostAiChatsByChatIdMessagesPath = z.object({
+    chatID: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Answer generated
+ */
+export const zPostAiChatsByChatIdMessagesResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Answer generated'),
+    data: z.object({
+        message: z.object({
+            id: z.number(),
+            role: z.enum(['user', 'assistant']),
+            content: z.string(),
+            sources: z.array(z.object({
+                index: z.int().gte(1).lte(100),
+                title: z.string().max(1000),
+                url: z.string().max(4096)
+            })),
+            search_query: z.string().nullable(),
+            created_at: z.number()
+        }),
+        model: z.string().nullable(),
+        chat: z.object({
+            id: z.number(),
+            title: z.string(),
+            created_at: z.number(),
+            updated_at: z.number()
+        })
     })
 });
 

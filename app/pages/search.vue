@@ -60,6 +60,15 @@ const { data: response, loading } = await useAPIAsyncData(
 const result = computed(() => (response.value?.success ? response.value.data : null));
 const failure = computed(() => (response.value && !response.value.success ? response.value : null));
 
+// Signed-out visitors of a private instance never get here (auth.global.ts sends them to the
+// login page); this covers a session that expires while searching.
+async function requireSignIn() {
+	if (failure.value?.code !== 401) return;
+	await navigateTo(`/auth/login?url=${encodeURIComponent(route.fullPath)}`, { replace: true });
+}
+await requireSignIn();
+watch(failure, requireSignIn);
+
 /** Follow bang redirects (external) and category switches (`!i cats`). */
 async function followRedirects() {
 	const data = result.value;
@@ -181,6 +190,16 @@ const showAI = computed(
 		params.value.page === 1 &&
 		(prefs.value?.ai_mode ?? "off") !== "off",
 );
+// AI answers are for signed-in users only (also on public instances).
+const aiModeAvailable = computed(
+	() =>
+		!!instance.value?.features.ai &&
+		!!instance.value?.authenticated &&
+		(prefs.value?.ai_mode ?? "off") !== "off",
+);
+function openAIMode() {
+	return navigateTo({ path: "/ai", query: { q: params.value.q } });
+}
 const allEnginesFailed = computed(
 	() => !!result.value?.engines.length && result.value.engines.every((e) => e.status !== "ok"),
 );
@@ -200,29 +219,17 @@ useSeoMeta({
 			:time-range="params.time_range ?? null"
 			:image-proxy="imageProxy"
 			:disable-suggestions="failure?.code === 401"
+			:ai-mode="aiModeAvailable"
 			@submit="(q) => search({ q, page: 1 })"
 			@category="(c) => search({ category: c, page: 1 })"
 			@time-range="(t) => search({ time_range: t, page: 1, category: category })"
+			@ai-mode="openAIMode"
 		/>
 
-		<main class="flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:pl-[5.5rem]">
-			<!-- Sign in required -->
-			<div v-if="failure?.code === 401" class="mx-auto mt-16 max-w-md text-center">
-				<UIcon name="i-lucide-lock" class="mx-auto size-10 text-primary" />
-				<h1 class="mt-4 text-xl font-semibold text-white">Sign in to search</h1>
-				<p class="mt-2 text-slate-400">This X-Ray instance is private.</p>
-				<UButton
-					:to="`/auth/login?url=${encodeURIComponent(route.fullPath)}`"
-					label="Sign in"
-					icon="i-lucide-log-in"
-					color="primary"
-					class="mt-6"
-				/>
-			</div>
-
-			<!-- Other errors -->
+		<main class="flex-1 px-4 py-6 sm:px-6 lg:pr-8 lg:pl-(--search-gutter)">
+			<!-- Errors (401 redirects to the login page, see requireSignIn) -->
 			<UAlert
-				v-else-if="failure"
+				v-if="failure && failure.code !== 401"
 				:color="failure.code === 429 ? 'warning' : 'error'"
 				variant="subtle"
 				:icon="failure.code === 429 ? 'i-lucide-hourglass' : 'i-lucide-alert-circle'"

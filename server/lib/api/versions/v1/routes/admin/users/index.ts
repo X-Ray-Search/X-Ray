@@ -1,6 +1,7 @@
 import { and, eq, like, or } from "drizzle-orm";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
+import { AIChats } from "../../../../../../ai/chats";
 import { DB } from "../../../../../../db";
 import type { DrizzleDB } from "../../../../../../db/utils";
 import { APIResponse } from "../../../../../utils/api-res";
@@ -308,6 +309,8 @@ router.delete(
 			await UserPreferencesHandler.deleteAllForUser(user.id, tx);
 
 			await tx.delete(DB.Tables.bangs).where(eq(DB.Tables.bangs.owner_user_id, user.id)).run();
+
+			await AIChats.deleteAllForUser(user.id, tx);
 
 			await tx.delete(DB.Tables.users).where(eq(DB.Tables.users.id, user.id)).run();
 		});

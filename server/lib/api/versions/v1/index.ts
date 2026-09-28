@@ -6,6 +6,7 @@ import { DOCS_TAGS } from "./docs";
 import { authMiddlewareV1 } from "./middleware/auth";
 import { router as accountRouter } from "./routes/account";
 import { router as adminRouter } from "./routes/admin";
+import { router as aiRouter } from "./routes/ai";
 import { router as authRouter } from "./routes/auth";
 import { router as bangsRouter } from "./routes/bangs";
 import { router as instanceRouter } from "./routes/instance";
@@ -51,7 +52,13 @@ const openAPIConfig: Partial<GenerateSpecOptions> = {
 		"x-tagGroups": [
 			{
 				name: "Search",
-				tags: [DOCS_TAGS.SEARCH, DOCS_TAGS.BANGS, DOCS_TAGS.MEDIA_PROXY, DOCS_TAGS.INSTANCE],
+				tags: [
+					DOCS_TAGS.SEARCH,
+					DOCS_TAGS.AI,
+					DOCS_TAGS.BANGS,
+					DOCS_TAGS.MEDIA_PROXY,
+					DOCS_TAGS.INSTANCE,
+				],
 			},
 			{
 				name: "Account & Authentication",
@@ -77,6 +84,7 @@ const openAPIConfig: Partial<GenerateSpecOptions> = {
 
 		tags: [
 			{ name: DOCS_TAGS.SEARCH, description: "Metasearch, autocomplete and AI answers" },
+			{ name: DOCS_TAGS.AI, description: "AI chats: follow-up questions on AI answers" },
 			{ name: DOCS_TAGS.BANGS, description: "Bang suggestions and resolution" },
 			{ name: DOCS_TAGS.MEDIA_PROXY, description: "Privacy proxy for thumbnails and favicons" },
 			{ name: DOCS_TAGS.INSTANCE, description: "Public instance information" },
@@ -119,6 +127,7 @@ router.use(authMiddlewareV1);
 
 router.route("/", instanceRouter);
 router.route("/", searchRouter);
+router.route("/", aiRouter);
 router.route("/", bangsRouter);
 router.route("/", proxyRouter);
 router.route("/", authRouter);

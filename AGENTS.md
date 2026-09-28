@@ -32,7 +32,8 @@ https://git.leicraftmc.de/LeiCraftMC/Style-Guides (branch `feat/add-static-site-
 - **SearXNG compatible API** (`server/lib/api/searxng/`, mounted at `/api/searxng`) is a
   compatibility-proxy surface: SearXNG-native responses, manual validation, API-key auth
   (`Bearer`, `X-API-Key` or `?api_key=`).
-- **`POST /api/v1/search/ai`** streams Server-Sent Events; `app/composables/useAIAnswer.ts` uses raw
+- **`POST /api/v1/search/ai`** and **`POST /api/v1/ai/chats/{chatID}/messages`** stream Server-Sent
+  Events; `app/composables/useEventStream.ts` (used by `useAIAnswer` / `useAIChat`) uses raw
   `fetch` because the SDK cannot consume the stream.
 - **`/api/v1/proxy/{image,favicon}`** return image bytes (consumed by `<img>`), and
   **`/api/v1/search/suggest/opensearch`** returns OpenSearch JSON and accepts the session cookie.

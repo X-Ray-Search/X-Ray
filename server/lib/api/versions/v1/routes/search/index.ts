@@ -8,6 +8,7 @@ import { SearchService } from "../../../../../search/service";
 import type { SearchTypes } from "../../../../../search/types";
 import { SettingsHandler } from "../../../../../settings";
 import { Logger } from "../../../../../utils/logger";
+import { AIAccess } from "../../../../utils/aiAccess";
 import { APIResponse } from "../../../../utils/api-res";
 import { RequestInfo } from "../../../../utils/requestInfo";
 import { SearchAccess } from "../../../../utils/searchAccess";
@@ -148,16 +149,15 @@ router.get(
 router.post(
 	"/ai",
 
-	APIRouteSpec.custom({
+	APIRouteSpec.authenticated({
 		summary: "AI answer",
 		description:
-			"Answer the query with the configured OpenAI compatible model, grounded in the top search results (cited as [n]). With `stream: true` (default) the response is `text/event-stream` with the events `sources`, `delta` (`{ text }`), `done` and `error`; otherwise the JSON envelope below.",
+			"Answer the query with the configured OpenAI compatible model, grounded in the top search results (cited as [n]). Requires sign-in, also on public instances. With `stream: true` (default) the response is `text/event-stream` with the events `sources`, `delta` (`{ text }`), `done` (`{ model }`, `null` unless the caller is an admin) and `error`; otherwise the JSON envelope below. Follow-up questions go to `POST /ai/chats`.",
 		tags: [DOCS_TAGS.SEARCH],
-		security: [{ bearerAuth: [] }, {}],
 
 		responses: APIResponseSpec.describeWithWrongInputs(
 			APIResponseSpec.success("AI answer generated", SearchModel.AI.Response),
-			APIResponseSpec.unauthorized("This instance requires you to sign in to search"),
+			APIResponseSpec.unauthorized("Sign in to use AI answers"),
 			APIResponseSpec.forbidden("AI answers are not available"),
 			APIResponseSpec.serverError("The AI endpoint failed"),
 		),
@@ -166,38 +166,23 @@ router.post(
 	zValidator("json", SearchModel.AI.Body),
 
 	async (c) => {
-		const access = await SearchAccess.check(c);
+		const access = await AIAccess.check(c);
 		if (!access.ok) return access.response;
 
 		const body = c.req.valid("json") as SearchModel.AI.Body;
-		const preferences = await SettingsHandler.getEffectivePreferences(access.userID);
-		const config = await SettingsHandler.getAIConfig();
+		const { config } = access;
+		const model = access.showModel ? config.model : null;
 
-		if (!(await SettingsHandler.isAIAvailable()) || preferences.ai_mode === "off") {
-			return APIResponse.forbidden(c, "AI answers are not available");
-		}
-
-		// Reuses the cached results page of the normal search in the common case.
-		const search = await SearchService.search(
-			{ query: body.q, category: "general", page: 1, language: body.language, instantAnswers: false },
-			{
-				userID: access.userID,
-				preferences,
-				clientIP: RequestInfo.clientIP(c),
-				userAgent: RequestInfo.userAgent(c),
-				resolveBangs: false,
-				imageProxy: false,
-			},
-		);
-		const results = search.results.slice(0, config.context_results);
+		const results = await AIAccess.groundingResults(c, access, body.q, body.language);
 		const sources = AIService.sources(results);
+		const messages = AIService.buildMessages(body.q, results, config);
 
 		if (!body.stream) {
 			try {
-				const answer = await AIService.answer(body.q, results, config, c.req.raw.signal);
+				const answer = await AIService.answer(messages, config, c.req.raw.signal);
 				return APIResponse.success(c, "AI answer generated", {
 					answer,
-					model: config.model,
+					model,
 					sources,
 				} satisfies SearchModel.AI.Response);
 			} catch (err) {
@@ -209,11 +194,11 @@ router.post(
 		return streamSSE(c, async (stream) => {
 			await stream.writeSSE({ event: "sources", data: JSON.stringify(sources) });
 			try {
-				for await (const text of AIService.stream(body.q, results, config, c.req.raw.signal)) {
+				for await (const text of AIService.stream(messages, config, c.req.raw.signal)) {
 					if (stream.aborted) break;
 					await stream.writeSSE({ event: "delta", data: JSON.stringify({ text }) });
 				}
-				await stream.writeSSE({ event: "done", data: JSON.stringify({ model: config.model }) });
+				await stream.writeSSE({ event: "done", data: JSON.stringify({ model }) });
 			} catch (err) {
 				Logger.warn("AI stream failed:", (err as Error).message);
 				await stream.writeSSE({

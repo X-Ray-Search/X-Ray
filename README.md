@@ -13,12 +13,13 @@ or profiling.
 - **Instant answers** — calculator, unit & currency conversion, time zones, weather, timers,
   definitions, a Wikipedia panel, UUID/password/hash/colour/Base64 tools and more.
 - **Optional AI answers** — from any OpenAI compatible endpoint (OpenAI, OpenRouter, Ollama,
-  LM Studio, vLLM, …), grounded in the top results and citing them.
+  LM Studio, vLLM, …), grounded in the top results and citing them. Follow-up questions switch
+  to AI mode, a chat whose history is stored per user. AI is for signed-in users only.
 - **Outbound proxies** — route engines (or everything) through HTTP(S) proxies, SOCKS5 (Tor, VPN
   containers, `ssh -D`) or the [X-Ray HTTP proxy gateway](https://git.leicraftmc.de/X-Ray-Search/Simple-HTTP-Proxy-Gateway),
   with rotation and fail-over.
-- **Private or public** — only signed-in users can search by default; switch to public with a
-  per-IP rate limit.
+- **Private or public** — only signed-in users can search by default (signed-out visitors go
+  straight to the login page); switch to public with a per-IP rate limit.
 - **SearXNG compatible API** (with API keys) — use X-Ray as the web search backend of Open WebUI,
   Perplexica, LibreChat or any SearXNG client.
 - **Instance defaults, personal overrides** — admins set defaults for everything search related
@@ -187,7 +188,7 @@ server/
   lib/proxy/          ProxyManager, transports/, socks/ (SOCKS5 client + local CONNECT bridge)
   lib/bangs/          bang index, DuckDuckGo dataset, custom bangs
   lib/instant-answers/  providers/, math/ (safe expression parser, units)
-  lib/ai/             OpenAI compatible client (streaming)
+  lib/ai/             OpenAI compatible client (streaming), stored AI chats
   lib/settings/       instance settings, search defaults + user overrides, AI config
   runtime/bun-entry.ts  production server entry (passes the client IP to Nitro)
 app/                  Nuxt 4 frontend (search UI, dashboard, admin)

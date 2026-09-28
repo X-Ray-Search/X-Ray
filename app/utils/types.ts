@@ -7,10 +7,14 @@ import type {
 	GetAdminEnginesTypesResponses,
 	GetAdminProxiesResponses,
 	GetAdminProxiesTypesResponses,
+	GetAiChatsByChatIdResponses,
+	GetAiChatsResponses,
 	GetInstanceResponses,
 	GetSearchAutocompleteResponses,
 	GetSearchResponses,
 	PostAccountApikeysData,
+	PostAiChatsByChatIdMessagesResponses,
+	PostAiChatsData,
 } from "~/api-client";
 
 export namespace UtilityTypes {
@@ -43,3 +47,10 @@ export type AdminEngine = GetAdminEnginesResponses["200"]["data"][number];
 export type EngineType = GetAdminEnginesTypesResponses["200"]["data"][number];
 export type AdminProxy = GetAdminProxiesResponses["200"]["data"][number];
 export type ProxyType = GetAdminProxiesTypesResponses["200"]["data"][number];
+
+export type AIChatSummary = GetAiChatsResponses["200"]["data"][number];
+export type AIChat = GetAiChatsByChatIdResponses["200"]["data"];
+export type AIChatMessage = AIChat["messages"][number];
+export type AIChatSource = AIChatMessage["sources"][number];
+export type AIChatSeedMessage = NonNullable<PostAiChatsData["body"]["messages"]>[number];
+export type AIChatTurnResult = PostAiChatsByChatIdMessagesResponses["200"]["data"];

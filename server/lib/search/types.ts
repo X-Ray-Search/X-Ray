@@ -145,7 +145,9 @@ export namespace SearchModels {
 		number_of_results: z.number(),
 		time_ms: z.number(),
 		cached: z.boolean(),
-		ai_available: z.boolean().describe("Whether an AI answer can be requested for this search"),
+		ai_available: z
+			.boolean()
+			.describe("Whether the caller can request an AI answer for this search (signed-in users only)"),
 	});
 	export type Response = z.infer<typeof Response>;
 }

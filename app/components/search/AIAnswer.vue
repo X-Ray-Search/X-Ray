@@ -2,6 +2,8 @@
 /**
  * AI answer card. `manual` shows an "Ask AI" button, `auto` starts streaming right away. The
  * answer is rendered with the safe mini-Markdown renderer; `[n]` citations link to the sources.
+ *
+ * A follow-up question switches to AI mode (`/ai`): a stored chat seeded with this answer.
  */
 const props = defineProps<{
 	query: string;
@@ -10,8 +12,11 @@ const props = defineProps<{
 	newTab: boolean;
 }>();
 
+const toast = useToast();
 const { status, text, sources, model, error, ask, stop, reset } = useAIAnswer();
 const expanded = ref(false);
+const followUp = ref("");
+const opening = ref(false);
 
 const html = computed(() => renderMarkdown(text.value, sources.value));
 const busy = computed(() => status.value === "loading" || status.value === "streaming");
@@ -32,6 +37,28 @@ watch(
 onMounted(() => {
 	if (props.mode === "auto") start();
 });
+
+/** Continue in AI mode, optionally sending `question` as the first follow-up. */
+async function openChat(question: string | null) {
+	opening.value = true;
+	const response = await startAIChat(question, [
+		{ role: "user", content: props.query },
+		{
+			role: "assistant",
+			content: text.value.slice(0, 20_000),
+			sources: sources.value.filter((s) => /^https?:\/\//i.test(s.url)),
+		},
+	]);
+	opening.value = false;
+	if (!response.success) {
+		toast.add({
+			title: "Could not open AI mode",
+			description: response.message,
+			icon: "i-lucide-alert-circle",
+			color: "error",
+		});
+	}
+}
 </script>
 
 <template>
@@ -74,6 +101,17 @@ onMounted(() => {
 							@click="copyText(text)"
 						/>
 						<UButton size="xs" color="neutral" variant="ghost" icon="i-lucide-refresh-cw" aria-label="Regenerate" @click="start" />
+						<UTooltip v-if="status === 'done' && text" text="Continue in AI mode">
+							<UButton
+								size="xs"
+								color="neutral"
+								variant="ghost"
+								icon="i-lucide-messages-square"
+								aria-label="Continue in AI mode"
+								:loading="opening"
+								@click="openChat(null)"
+							/>
+						</UTooltip>
 					</template>
 				</div>
 			</header>
@@ -109,24 +147,19 @@ onMounted(() => {
 					</div>
 				</div>
 
-				<div v-if="sources.length && status !== 'loading'" class="mt-4 flex flex-wrap gap-1.5">
-					<a
-						v-for="source in sources"
-						:key="source.index"
-						:href="source.url"
-						:target="newTab ? '_blank' : undefined"
-						rel="noopener noreferrer"
-						class="inline-flex max-w-60 items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-900/60 px-2 py-1 text-xs text-slate-300 transition hover:border-primary/40 hover:text-white"
-						:title="source.title"
-					>
-						<span class="font-mono text-primary">{{ source.index }}</span>
-						<span class="truncate">{{ hostnameOf(source.url).replace(/^www\./, "") }}</span>
-					</a>
-				</div>
+				<AiSources v-if="sources.length && status !== 'loading'" :sources="sources" :new-tab="newTab" class="mt-4" />
 
-				<p v-if="status === 'done'" class="mt-3 text-[11px] text-slate-500">
-					AI answers can be wrong — check the sources.
-				</p>
+				<template v-if="status === 'done'">
+					<AiComposer
+						v-if="text"
+						v-model="followUp"
+						placeholder="Ask a follow-up…"
+						:disabled="opening"
+						class="mt-4"
+						@submit="openChat"
+					/>
+					<p class="mt-3 text-[11px] text-slate-500">AI answers can be wrong — check the sources.</p>
+				</template>
 			</div>
 		</template>
 	</section>

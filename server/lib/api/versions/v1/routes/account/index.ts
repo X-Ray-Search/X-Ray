@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { validator } from "hono-openapi";
+import { AIChats } from "../../../../../ai/chats";
 import { DB } from "../../../../../db";
 import type { DrizzleDB } from "../../../../../db/utils";
 import { Logger } from "../../../../../utils/logger";
@@ -228,6 +229,9 @@ router.delete(
 					.delete(DB.Tables.bangs)
 					.where(eq(DB.Tables.bangs.owner_user_id, authContext.user_id))
 					.run();
+
+				// delete AI chats
+				await AIChats.deleteAllForUser(authContext.user_id, tx);
 
 				// finally, delete the user account
 				await tx.delete(DB.Tables.users).where(eq(DB.Tables.users.id, authContext.user_id)).run();

@@ -3,7 +3,7 @@
 
 import type { Client, ClientMeta, Composable, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { DeleteAccountApikeysByApiKeyIdData, DeleteAccountApikeysByApiKeyIdError, DeleteAccountApikeysByApiKeyIdResponse, DeleteAccountBangsByBangIdData, DeleteAccountBangsByBangIdError, DeleteAccountBangsByBangIdResponse, DeleteAccountData, DeleteAccountError, DeleteAccountResponse, DeleteAdminBangsByBangIdData, DeleteAdminBangsByBangIdError, DeleteAdminBangsByBangIdResponse, DeleteAdminEnginesByEngineIdData, DeleteAdminEnginesByEngineIdError, DeleteAdminEnginesByEngineIdResponse, DeleteAdminProxiesByProxyIdData, DeleteAdminProxiesByProxyIdError, DeleteAdminProxiesByProxyIdResponse, DeleteAdminUsersByUserIdData, DeleteAdminUsersByUserIdError, DeleteAdminUsersByUserIdResponse, GetAccountApikeysByApiKeyIdData, GetAccountApikeysByApiKeyIdError, GetAccountApikeysByApiKeyIdResponse, GetAccountApikeysData, GetAccountApikeysResponse, GetAccountBangsData, GetAccountBangsResponse, GetAccountData, GetAccountError, GetAccountPreferencesData, GetAccountPreferencesResponse, GetAccountPreferencesSearchData, GetAccountPreferencesSearchResponse, GetAccountResponse, GetAdminBangsData, GetAdminBangsDatasetData, GetAdminBangsDatasetResponse, GetAdminBangsResponse, GetAdminEnginesByEngineIdData, GetAdminEnginesByEngineIdError, GetAdminEnginesByEngineIdResponse, GetAdminEnginesData, GetAdminEnginesResponse, GetAdminEnginesTypesData, GetAdminEnginesTypesResponse, GetAdminProxiesByProxyIdData, GetAdminProxiesByProxyIdError, GetAdminProxiesByProxyIdResponse, GetAdminProxiesData, GetAdminProxiesResponse, GetAdminProxiesTypesData, GetAdminProxiesTypesResponse, GetAdminSettingsAiData, GetAdminSettingsAiResponse, GetAdminSettingsInstanceData, GetAdminSettingsInstanceResponse, GetAdminSettingsSearchDefaultsData, GetAdminSettingsSearchDefaultsResponse, GetAdminUsersByUserIdData, GetAdminUsersByUserIdError, GetAdminUsersByUserIdResponse, GetAdminUsersData, GetAdminUsersError, GetAdminUsersResponse, GetAuthSessionData, GetAuthSessionError, GetAuthSessionResponse, GetBangsResolveData, GetBangsResolveError, GetBangsResolveResponse, GetBangsSuggestData, GetBangsSuggestError, GetBangsSuggestResponse, GetInstanceData, GetInstanceResponse, GetProxyFaviconData, GetProxyFaviconError, GetProxyImageData, GetProxyImageError, GetSearchAutocompleteData, GetSearchAutocompleteError, GetSearchAutocompleteResponse, GetSearchData, GetSearchError, GetSearchResponse, GetSearchSuggestOpensearchData, GetSearchSuggestOpensearchError, PostAccountApikeysData, PostAccountApikeysError, PostAccountApikeysResponse, PostAccountBangsData, PostAccountBangsError, PostAccountBangsResponse, PostAdminBangsData, PostAdminBangsDatasetRefreshData, PostAdminBangsDatasetRefreshResponse, PostAdminBangsError, PostAdminBangsResponse, PostAdminEnginesByEngineIdTestData, PostAdminEnginesByEngineIdTestError, PostAdminEnginesByEngineIdTestResponse, PostAdminEnginesData, PostAdminEnginesError, PostAdminEnginesResponse, PostAdminProxiesByProxyIdTestData, PostAdminProxiesByProxyIdTestError, PostAdminProxiesByProxyIdTestResponse, PostAdminProxiesData, PostAdminProxiesError, PostAdminProxiesResponse, PostAdminProxiesTestData, PostAdminProxiesTestError, PostAdminProxiesTestResponse, PostAdminSettingsAiModelsData, PostAdminSettingsAiModelsError, PostAdminSettingsAiModelsResponse, PostAdminSettingsAiTestData, PostAdminSettingsAiTestError, PostAdminSettingsAiTestResponse, PostAdminSettingsCacheClearData, PostAdminSettingsCacheClearResponse, PostAdminUsersData, PostAdminUsersError, PostAdminUsersResponse, PostAuthLoginData, PostAuthLoginError, PostAuthLoginResponse, PostAuthLogoutData, PostAuthLogoutError, PostAuthLogoutResponse, PostAuthResetPasswordData, PostAuthResetPasswordError, PostAuthResetPasswordRequestData, PostAuthResetPasswordRequestError, PostAuthResetPasswordRequestResponse, PostAuthResetPasswordResponse, PostSearchAiData, PostSearchAiError, PostSearchAiResponse, PutAccountBangsByBangIdData, PutAccountBangsByBangIdError, PutAccountBangsByBangIdResponse, PutAccountData, PutAccountError, PutAccountPasswordData, PutAccountPasswordError, PutAccountPasswordResponse, PutAccountPreferencesSearchData, PutAccountPreferencesSearchError, PutAccountPreferencesSearchResponse, PutAccountResponse, PutAdminBangsByBangIdData, PutAdminBangsByBangIdError, PutAdminBangsByBangIdResponse, PutAdminEnginesByEngineIdData, PutAdminEnginesByEngineIdError, PutAdminEnginesByEngineIdResponse, PutAdminProxiesByProxyIdData, PutAdminProxiesByProxyIdError, PutAdminProxiesByProxyIdResponse, PutAdminSettingsAiData, PutAdminSettingsAiError, PutAdminSettingsAiResponse, PutAdminSettingsInstanceData, PutAdminSettingsInstanceError, PutAdminSettingsInstanceResponse, PutAdminSettingsSearchDefaultsData, PutAdminSettingsSearchDefaultsError, PutAdminSettingsSearchDefaultsResponse, PutAdminUsersByUserIdData, PutAdminUsersByUserIdError, PutAdminUsersByUserIdPasswordData, PutAdminUsersByUserIdPasswordError, PutAdminUsersByUserIdPasswordResponse, PutAdminUsersByUserIdResponse } from './types.gen';
+import type { DeleteAccountApikeysByApiKeyIdData, DeleteAccountApikeysByApiKeyIdError, DeleteAccountApikeysByApiKeyIdResponse, DeleteAccountBangsByBangIdData, DeleteAccountBangsByBangIdError, DeleteAccountBangsByBangIdResponse, DeleteAccountData, DeleteAccountError, DeleteAccountResponse, DeleteAdminBangsByBangIdData, DeleteAdminBangsByBangIdError, DeleteAdminBangsByBangIdResponse, DeleteAdminEnginesByEngineIdData, DeleteAdminEnginesByEngineIdError, DeleteAdminEnginesByEngineIdResponse, DeleteAdminProxiesByProxyIdData, DeleteAdminProxiesByProxyIdError, DeleteAdminProxiesByProxyIdResponse, DeleteAdminUsersByUserIdData, DeleteAdminUsersByUserIdError, DeleteAdminUsersByUserIdResponse, DeleteAiChatsByChatIdData, DeleteAiChatsByChatIdError, DeleteAiChatsByChatIdResponse, GetAccountApikeysByApiKeyIdData, GetAccountApikeysByApiKeyIdError, GetAccountApikeysByApiKeyIdResponse, GetAccountApikeysData, GetAccountApikeysResponse, GetAccountBangsData, GetAccountBangsResponse, GetAccountData, GetAccountError, GetAccountPreferencesData, GetAccountPreferencesResponse, GetAccountPreferencesSearchData, GetAccountPreferencesSearchResponse, GetAccountResponse, GetAdminBangsData, GetAdminBangsDatasetData, GetAdminBangsDatasetResponse, GetAdminBangsResponse, GetAdminEnginesByEngineIdData, GetAdminEnginesByEngineIdError, GetAdminEnginesByEngineIdResponse, GetAdminEnginesData, GetAdminEnginesResponse, GetAdminEnginesTypesData, GetAdminEnginesTypesResponse, GetAdminProxiesByProxyIdData, GetAdminProxiesByProxyIdError, GetAdminProxiesByProxyIdResponse, GetAdminProxiesData, GetAdminProxiesResponse, GetAdminProxiesTypesData, GetAdminProxiesTypesResponse, GetAdminSettingsAiData, GetAdminSettingsAiResponse, GetAdminSettingsInstanceData, GetAdminSettingsInstanceResponse, GetAdminSettingsSearchDefaultsData, GetAdminSettingsSearchDefaultsResponse, GetAdminUsersByUserIdData, GetAdminUsersByUserIdError, GetAdminUsersByUserIdResponse, GetAdminUsersData, GetAdminUsersError, GetAdminUsersResponse, GetAiChatsByChatIdData, GetAiChatsByChatIdError, GetAiChatsByChatIdResponse, GetAiChatsData, GetAiChatsError, GetAiChatsResponse, GetAuthSessionData, GetAuthSessionError, GetAuthSessionResponse, GetBangsResolveData, GetBangsResolveError, GetBangsResolveResponse, GetBangsSuggestData, GetBangsSuggestError, GetBangsSuggestResponse, GetInstanceData, GetInstanceResponse, GetProxyFaviconData, GetProxyFaviconError, GetProxyImageData, GetProxyImageError, GetSearchAutocompleteData, GetSearchAutocompleteError, GetSearchAutocompleteResponse, GetSearchData, GetSearchError, GetSearchResponse, GetSearchSuggestOpensearchData, GetSearchSuggestOpensearchError, PostAccountApikeysData, PostAccountApikeysError, PostAccountApikeysResponse, PostAccountBangsData, PostAccountBangsError, PostAccountBangsResponse, PostAdminBangsData, PostAdminBangsDatasetRefreshData, PostAdminBangsDatasetRefreshResponse, PostAdminBangsError, PostAdminBangsResponse, PostAdminEnginesByEngineIdTestData, PostAdminEnginesByEngineIdTestError, PostAdminEnginesByEngineIdTestResponse, PostAdminEnginesData, PostAdminEnginesError, PostAdminEnginesResponse, PostAdminProxiesByProxyIdTestData, PostAdminProxiesByProxyIdTestError, PostAdminProxiesByProxyIdTestResponse, PostAdminProxiesData, PostAdminProxiesError, PostAdminProxiesResponse, PostAdminProxiesTestData, PostAdminProxiesTestError, PostAdminProxiesTestResponse, PostAdminSettingsAiModelsData, PostAdminSettingsAiModelsError, PostAdminSettingsAiModelsResponse, PostAdminSettingsAiTestData, PostAdminSettingsAiTestError, PostAdminSettingsAiTestResponse, PostAdminSettingsCacheClearData, PostAdminSettingsCacheClearResponse, PostAdminUsersData, PostAdminUsersError, PostAdminUsersResponse, PostAiChatsByChatIdMessagesData, PostAiChatsByChatIdMessagesError, PostAiChatsByChatIdMessagesResponse, PostAiChatsData, PostAiChatsError, PostAiChatsResponse, PostAuthLoginData, PostAuthLoginError, PostAuthLoginResponse, PostAuthLogoutData, PostAuthLogoutError, PostAuthLogoutResponse, PostAuthResetPasswordData, PostAuthResetPasswordError, PostAuthResetPasswordRequestData, PostAuthResetPasswordRequestError, PostAuthResetPasswordRequestResponse, PostAuthResetPasswordResponse, PostSearchAiData, PostSearchAiError, PostSearchAiResponse, PutAccountBangsByBangIdData, PutAccountBangsByBangIdError, PutAccountBangsByBangIdResponse, PutAccountData, PutAccountError, PutAccountPasswordData, PutAccountPasswordError, PutAccountPasswordResponse, PutAccountPreferencesSearchData, PutAccountPreferencesSearchError, PutAccountPreferencesSearchResponse, PutAccountResponse, PutAdminBangsByBangIdData, PutAdminBangsByBangIdError, PutAdminBangsByBangIdResponse, PutAdminEnginesByEngineIdData, PutAdminEnginesByEngineIdError, PutAdminEnginesByEngineIdResponse, PutAdminProxiesByProxyIdData, PutAdminProxiesByProxyIdError, PutAdminProxiesByProxyIdResponse, PutAdminSettingsAiData, PutAdminSettingsAiError, PutAdminSettingsAiResponse, PutAdminSettingsInstanceData, PutAdminSettingsInstanceError, PutAdminSettingsInstanceResponse, PutAdminSettingsSearchDefaultsData, PutAdminSettingsSearchDefaultsError, PutAdminSettingsSearchDefaultsResponse, PutAdminUsersByUserIdData, PutAdminUsersByUserIdError, PutAdminUsersByUserIdPasswordData, PutAdminUsersByUserIdPasswordError, PutAdminUsersByUserIdPasswordResponse, PutAdminUsersByUserIdResponse } from './types.gen';
 
 export type Options<TComposable extends Composable = '$fetch', TData extends TDataShape = TDataShape, ResT = unknown, DefaultT = undefined> = Options2<TComposable, TData, ResT, DefaultT> & {
     /**
@@ -62,11 +62,72 @@ export const getSearchSuggestOpensearch = <TComposable extends Composable = '$fe
 /**
  * AI answer
  *
- * Answer the query with the configured OpenAI compatible model, grounded in the top search results (cited as [n]). With `stream: true` (default) the response is `text/event-stream` with the events `sources`, `delta` (`{ text }`), `done` and `error`; otherwise the JSON envelope below.
+ * Answer the query with the configured OpenAI compatible model, grounded in the top search results (cited as [n]). Requires sign-in, also on public instances. With `stream: true` (default) the response is `text/event-stream` with the events `sources`, `delta` (`{ text }`), `done` (`{ model }`, `null` unless the caller is an admin) and `error`; otherwise the JSON envelope below. Follow-up questions go to `POST /ai/chats`.
  */
 export const postSearchAi = <TComposable extends Composable = '$fetch', DefaultT extends PostSearchAiResponse = PostSearchAiResponse>(options: Options<TComposable, PostSearchAiData, PostSearchAiResponse, DefaultT>): RequestResult<TComposable, PostSearchAiResponse | DefaultT, DefaultT> => (options.client ?? client).post<TComposable, PostSearchAiResponse | DefaultT, PostSearchAiError, DefaultT>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/search/ai',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * List AI chats
+ *
+ * The caller's AI chats, most recently active first.
+ */
+export const getAiChats = <TComposable extends Composable = '$fetch', DefaultT extends GetAiChatsResponse = GetAiChatsResponse>(options: Options<TComposable, GetAiChatsData, GetAiChatsResponse, DefaultT>): RequestResult<TComposable, GetAiChatsResponse | DefaultT, DefaultT> => (options.client ?? client).get<TComposable, GetAiChatsResponse | DefaultT, GetAiChatsError, DefaultT>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/ai/chats',
+    ...options
+});
+
+/**
+ * Create an AI chat
+ *
+ * Start a chat, optionally seeded with earlier turns (e.g. the query and AI answer of a search). Send messages with `POST /ai/chats/{chatID}/messages`. Chats without messages are not listed.
+ */
+export const postAiChats = <TComposable extends Composable = '$fetch', DefaultT extends PostAiChatsResponse = PostAiChatsResponse>(options: Options<TComposable, PostAiChatsData, PostAiChatsResponse, DefaultT>): RequestResult<TComposable, PostAiChatsResponse | DefaultT, DefaultT> => (options.client ?? client).post<TComposable, PostAiChatsResponse | DefaultT, PostAiChatsError, DefaultT>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/ai/chats',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Delete an AI chat
+ */
+export const deleteAiChatsByChatId = <TComposable extends Composable = '$fetch', DefaultT extends DeleteAiChatsByChatIdResponse = DeleteAiChatsByChatIdResponse>(options: Options<TComposable, DeleteAiChatsByChatIdData, DeleteAiChatsByChatIdResponse, DefaultT>): RequestResult<TComposable, DeleteAiChatsByChatIdResponse | DefaultT, DefaultT> => (options.client ?? client).delete<TComposable, DeleteAiChatsByChatIdResponse | DefaultT, DeleteAiChatsByChatIdError, DefaultT>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/ai/chats/{chatID}',
+    ...options
+});
+
+/**
+ * Get an AI chat
+ *
+ * A chat with all of its messages.
+ */
+export const getAiChatsByChatId = <TComposable extends Composable = '$fetch', DefaultT extends GetAiChatsByChatIdResponse = GetAiChatsByChatIdResponse>(options: Options<TComposable, GetAiChatsByChatIdData, GetAiChatsByChatIdResponse, DefaultT>): RequestResult<TComposable, GetAiChatsByChatIdResponse | DefaultT, DefaultT> => (options.client ?? client).get<TComposable, GetAiChatsByChatIdResponse | DefaultT, GetAiChatsByChatIdError, DefaultT>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/ai/chats/{chatID}',
+    ...options
+});
+
+/**
+ * Send a message
+ *
+ * Ask a (follow-up) question in a chat. The question is rewritten into a standalone web search using the conversation, and the answer is grounded in its top results (cited as [n]). The turn is stored once the answer is complete — a stopped answer is kept as far as it got. With `stream: true` (default) the response is `text/event-stream` with the events `search` (`{ query }`), `sources`, `delta` (`{ text }`), `done` (the JSON response below) and `error`; otherwise the JSON envelope below.
+ */
+export const postAiChatsByChatIdMessages = <TComposable extends Composable = '$fetch', DefaultT extends PostAiChatsByChatIdMessagesResponse = PostAiChatsByChatIdMessagesResponse>(options: Options<TComposable, PostAiChatsByChatIdMessagesData, PostAiChatsByChatIdMessagesResponse, DefaultT>): RequestResult<TComposable, PostAiChatsByChatIdMessagesResponse | DefaultT, DefaultT> => (options.client ?? client).post<TComposable, PostAiChatsByChatIdMessagesResponse | DefaultT, PostAiChatsByChatIdMessagesError, DefaultT>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/ai/chats/{chatID}/messages',
     ...options,
     headers: {
         'Content-Type': 'application/json',

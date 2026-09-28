@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from "@nuxt/ui";
+import { useInstanceStore } from "~/composables/stores/useInstanceStore";
 import { useUserInfoStore } from "~/composables/stores/useUserStore";
 
 const route = useRoute();
 const toast = useToast();
+const instanceStore = useInstanceStore();
 const user = await useUserInfoStore().use();
+const instance = await instanceStore.use();
 const { signOut } = useSession();
 
 const loginRoute = computed(() =>
@@ -36,6 +39,9 @@ const items = computed<DropdownMenuItem[][]>(() => {
 			} as DropdownMenuItem,
 		],
 		[
+			...(instance.value?.features.ai
+				? [{ label: "AI chats", icon: "i-lucide-sparkles", to: "/ai" }]
+				: []),
 			{
 				label: "Search preferences",
 				icon: "i-lucide-sliders-horizontal",

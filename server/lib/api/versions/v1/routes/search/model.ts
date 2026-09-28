@@ -68,7 +68,7 @@ export namespace SearchModel.AI {
 
 	export const Response = z.object({
 		answer: z.string(),
-		model: z.string(),
+		model: z.string().nullable().describe("The model that answered — only returned to admins"),
 		sources: z.array(Source),
 	});
 	export type Response = z.infer<typeof Response>;

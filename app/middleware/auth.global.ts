@@ -3,16 +3,18 @@
  *
  * - `/auth/*` is for signed-out users; a valid session is sent on to `HOME_ROUTE`.
  * - `PROTECTED_PREFIXES` need a valid session, otherwise → `/auth/login?url=…`.
+ * - On a private instance (`search_access: "authenticated"`) every other page needs one too, so
+ *   signed-out visitors land on the login page right away. On a public instance `/` and `/search`
+ *   are open to everyone (the API still enforces access and rate limits).
  * - `ADMIN_PREFIXES` additionally need `role === "admin"`, otherwise → `/dashboard`.
- * - `/` and `/search` are public routes: whether a visitor may *search* is an instance setting
- *   (`search_access`), enforced by the API; those pages show a sign-in prompt when needed.
  *
  * See docs/10-auth.md.
  */
+import { useInstanceStore } from "~/composables/stores/useInstanceStore";
 import { useUserInfoStore } from "~/composables/stores/useUserStore";
 
 const HOME_ROUTE = "/";
-const PROTECTED_PREFIXES = ["/dashboard"];
+const PROTECTED_PREFIXES = ["/dashboard", "/ai"];
 const ADMIN_PREFIXES = ["/dashboard/admin"];
 const PUBLIC_ROUTES: string[] = [];
 
@@ -20,6 +22,12 @@ function hasPrefix(path: string, prefixes: string[]) {
 	return prefixes.some(
 		(prefix) => prefix === "/" || path === prefix || path.startsWith(`${prefix}/`),
 	);
+}
+
+/** Unknown (instance info unavailable) counts as private. */
+async function isPrivateInstance() {
+	const instance = await useInstanceStore().use();
+	return instance.value?.search_access !== "public";
 }
 
 export default defineNuxtRouteMiddleware(async (to) => {
@@ -36,8 +44,8 @@ export default defineNuxtRouteMiddleware(async (to) => {
 		return;
 	}
 
-	if (!hasPrefix(to.path, PROTECTED_PREFIXES)) return;
 	if (SimpleRouteMatcher.match(to.path, PUBLIC_ROUTES)) return;
+	if (!hasPrefix(to.path, PROTECTED_PREFIXES) && !(await isPrivateInstance())) return;
 
 	const loginRoute = `/auth/login?url=${encodeURIComponent(to.fullPath)}`;
 	if (!token) return navigateTo(loginRoute);

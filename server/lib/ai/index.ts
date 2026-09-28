@@ -5,31 +5,75 @@ import type { SettingsModels } from "../settings/models";
  * AI answers from any OpenAI compatible `/chat/completions` endpoint (OpenAI, OpenRouter,
  * Ollama, LM Studio, vLLM, LiteLLM, Azure-compatible gateways, …).
  *
- * The model only sees the query and the top search results, numbered so it can cite them.
- * Requests go directly to the configured endpoint (it is often a local LLM server).
+ * The model only sees the query and the top search results, numbered so it can cite them — plus,
+ * in a chat, the earlier turns of the conversation. Requests go directly to the configured
+ * endpoint (it is often a local LLM server).
  */
 export class AIService {
-	static buildMessages(
-		query: string,
-		results: readonly SearchModels.Result[],
-		config: SettingsModels.AIConfig,
-		now = new Date(),
-	) {
+	/** Earlier messages passed along with a follow-up; older ones are dropped. */
+	static readonly HISTORY_MESSAGES = 12;
+	private static readonly HISTORY_MESSAGE_CHARS = 4000;
+
+	private static readonly CHAT_NOTE =
+		"This is a follow-up in an ongoing conversation. Earlier turns come first and may be used as context; the numbered search results belong to the latest message only.";
+
+	private static readonly REWRITE_PROMPT =
+		"Rewrite the latest message of the conversation into a short, standalone web search query. Use the conversation to resolve references like 'it' or 'the second one'. Reply with the query only: no quotes, no explanation.";
+
+	private static systemMessage(config: SettingsModels.AIConfig, now: Date, note?: string) {
+		return {
+			role: "system" as const,
+			content: `${config.system_prompt}${note ? `\n${note}` : ""}\nToday's date: ${now.toISOString().slice(0, 10)}.`,
+		};
+	}
+
+	private static questionMessage(query: string, results: readonly SearchModels.Result[]) {
 		const context = results
 			.map(
 				(r, i) =>
 					`[${i + 1}] ${r.title}\nURL: ${r.url}${r.content ? `\n${r.content.slice(0, 700)}` : ""}`,
 			)
 			.join("\n\n");
+		return {
+			role: "user" as const,
+			content: `Query: ${query}\n\nSearch results:\n${context || "(no results)"}`,
+		};
+	}
+
+	/** Citation numbers of earlier answers point at older result lists, so they are removed. */
+	private static stripCitations(text: string) {
+		return text.replace(/\s?\[\d{1,2}(?:\s*,\s*\d{1,2})*\]/g, "");
+	}
+
+	static buildMessages(
+		query: string,
+		results: readonly SearchModels.Result[],
+		config: SettingsModels.AIConfig,
+		now = new Date(),
+	): AIService.Message[] {
+		return [this.systemMessage(config, now), this.questionMessage(query, results)];
+	}
+
+	/** Messages for a chat turn: the recent history, then the new question with fresh results. */
+	static buildChatMessages(
+		history: readonly AIService.ChatMessage[],
+		question: string,
+		results: readonly SearchModels.Result[],
+		config: SettingsModels.AIConfig,
+		now = new Date(),
+	): AIService.Message[] {
+		if (!history.length) return this.buildMessages(question, results, config, now);
+		const turns = history.slice(-this.HISTORY_MESSAGES).map((m) => ({
+			role: m.role,
+			content: (m.role === "assistant" ? this.stripCitations(m.content) : m.content).slice(
+				0,
+				this.HISTORY_MESSAGE_CHARS,
+			),
+		}));
 		return [
-			{
-				role: "system" as const,
-				content: `${config.system_prompt}\nToday's date: ${now.toISOString().slice(0, 10)}.`,
-			},
-			{
-				role: "user" as const,
-				content: `Query: ${query}\n\nSearch results:\n${context || "(no results)"}`,
-			},
+			this.systemMessage(config, now, this.CHAT_NOTE),
+			...turns,
+			this.questionMessage(question, results),
 		];
 	}
 
@@ -52,7 +96,7 @@ export class AIService {
 
 	private static async request(
 		config: SettingsModels.AIConfig,
-		messages: ReturnType<typeof AIService.buildMessages>,
+		messages: readonly AIService.Message[],
 		stream: boolean,
 		signal?: AbortSignal,
 	) {
@@ -81,12 +125,11 @@ export class AIService {
 
 	/** Stream the answer as text deltas. */
 	static async *stream(
-		query: string,
-		results: readonly SearchModels.Result[],
+		messages: readonly AIService.Message[],
 		config: SettingsModels.AIConfig,
 		signal?: AbortSignal,
 	): AsyncGenerator<string> {
-		const res = await this.request(config, this.buildMessages(query, results, config), true, signal);
+		const res = await this.request(config, messages, true, signal);
 		if (!res.body) throw new AIService.AIError("AI endpoint returned no body");
 
 		// Servers that ignore `stream: true` answer with plain JSON.
@@ -139,16 +182,68 @@ export class AIService {
 
 	/** Non-streaming answer. */
 	static async answer(
-		query: string,
-		results: readonly SearchModels.Result[],
+		messages: readonly AIService.Message[],
 		config: SettingsModels.AIConfig,
 		signal?: AbortSignal,
 	): Promise<string> {
-		const res = await this.request(config, this.buildMessages(query, results, config), false, signal);
+		const res = await this.request(config, messages, false, signal);
 		const data = (await res.json()) as any;
 		const text = data.choices?.[0]?.message?.content;
 		if (typeof text !== "string") throw new AIService.AIError("AI endpoint returned no answer");
 		return text;
+	}
+
+	/**
+	 * The web search for a chat message. Follow-ups ("and in winter?") only make sense with the
+	 * conversation, so the model rewrites them into a standalone query first. Falls back to the
+	 * message itself when the endpoint fails or replies with something unusable.
+	 */
+	static async searchQuery(
+		history: readonly AIService.ChatMessage[],
+		question: string,
+		config: SettingsModels.AIConfig,
+		signal?: AbortSignal,
+	): Promise<string> {
+		if (!history.length) return question;
+		const transcript = history
+			.slice(-6)
+			.map(
+				(m) =>
+					`${m.role === "user" ? "User" : "Assistant"}: ${this.stripCitations(m.content).slice(0, 600)}`,
+			)
+			.join("\n");
+		try {
+			const res = await this.request(
+				{
+					...config,
+					temperature: 0,
+					max_tokens: 64,
+					timeout_ms: Math.min(config.timeout_ms, 20_000),
+				},
+				[
+					{ role: "system", content: this.REWRITE_PROMPT },
+					{ role: "user", content: `Conversation:\n${transcript}\n\nLatest message: ${question}` },
+				],
+				false,
+				signal,
+			);
+			const data = (await res.json()) as any;
+			const reply = data.choices?.[0]?.message?.content;
+			if (typeof reply !== "string") return question;
+			// Reasoning models may prefix their reply with a <think> block.
+			const query = (
+				reply
+					.replace(/<think>[\s\S]*?<\/think>/g, "")
+					.trim()
+					.split("\n")[0] ?? ""
+			)
+				.replace(/^["'“”]+|["'“”]+$/g, "")
+				.trim();
+			return query && query.length <= 300 && !query.includes("<think") ? query : question;
+		} catch (err) {
+			if (signal?.aborted) throw err;
+			return question;
+		}
 	}
 
 	/** Models offered by the endpoint (`GET /models`), for the admin UI. */
@@ -173,7 +268,7 @@ export class AIService {
 		try {
 			const res = await this.request(
 				{ ...config, max_tokens: 16 },
-				[{ role: "user", content: "Reply with the single word: pong" }] as any,
+				[{ role: "user", content: "Reply with the single word: pong" }],
 				false,
 			);
 			const data = (await res.json()) as any;
@@ -199,6 +294,17 @@ export namespace AIService {
 		index: number;
 		title: string;
 		url: string;
+	}
+
+	export interface Message {
+		role: "system" | "user" | "assistant";
+		content: string;
+	}
+
+	/** A stored chat message, as far as the model is concerned. */
+	export interface ChatMessage {
+		role: "user" | "assistant";
+		content: string;
 	}
 
 	export class AIError extends Error {}

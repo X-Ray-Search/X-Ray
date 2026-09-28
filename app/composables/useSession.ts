@@ -1,15 +1,16 @@
 /**
  * useSession — sign-in state helpers shared by the login page and every account menu. After login
  * or logout the per-user stores are reset and the instance info is refetched, because
- * `can_search` and the effective search preferences depend on the session.
+ * `can_search`, the effective search preferences and the AI chat history depend on the session.
  */
+import { useAIChatsStore } from "./stores/useAIChatsStore";
 import { useInstanceStore } from "./stores/useInstanceStore";
 import { useSearchPreferencesStore } from "./stores/useSearchPreferencesStore";
 import { useUserInfoStore } from "./stores/useUserStore";
 
 export function useSession() {
 	async function refreshSessionState() {
-		await useSearchPreferencesStore().clear();
+		await Promise.all([useSearchPreferencesStore().clear(), useAIChatsStore().clear()]);
 		await Promise.all([useUserInfoStore().refresh(), useInstanceStore().refresh()]);
 	}
 

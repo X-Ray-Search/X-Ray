@@ -238,7 +238,7 @@ export type GetSearchResponses = {
             time_ms: number;
             cached: boolean;
             /**
-             * Whether an AI answer can be requested for this search
+             * Whether the caller can request an AI answer for this search (signed-in users only)
              */
             ai_available: boolean;
         };
@@ -357,12 +357,12 @@ export type PostSearchAiErrors = {
         message: 'Bad Request: Syntax or validation error in request';
     };
     /**
-     * This instance requires you to sign in to search
+     * Sign in to use AI answers
      */
     401: {
         success: false;
         code: 401;
-        message: 'This instance requires you to sign in to search';
+        message: 'Sign in to use AI answers';
     };
     /**
      * AI answers are not available
@@ -394,7 +394,10 @@ export type PostSearchAiResponses = {
         message: 'AI answer generated';
         data: {
             answer: string;
-            model: string;
+            /**
+             * The model that answered — only returned to admins
+             */
+            model: string | null;
             sources: Array<{
                 index: number;
                 title: string;
@@ -405,6 +408,350 @@ export type PostSearchAiResponses = {
 };
 
 export type PostSearchAiResponse = PostSearchAiResponses[keyof PostSearchAiResponses];
+
+export type GetAiChatsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/ai/chats';
+};
+
+export type GetAiChatsErrors = {
+    /**
+     * Sign in to use AI answers
+     */
+    401: {
+        success: false;
+        code: 401;
+        message: 'Sign in to use AI answers';
+    };
+};
+
+export type GetAiChatsError = GetAiChatsErrors[keyof GetAiChatsErrors];
+
+export type GetAiChatsResponses = {
+    /**
+     * Chats retrieved
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Chats retrieved';
+        data: Array<{
+            id: number;
+            title: string;
+            created_at: number;
+            updated_at: number;
+        }>;
+    };
+};
+
+export type GetAiChatsResponse = GetAiChatsResponses[keyof GetAiChatsResponses];
+
+export type PostAiChatsData = {
+    body: {
+        /**
+         * Earlier turns to continue from, e.g. the query and AI answer of a search. Usually empty.
+         */
+        messages?: Array<{
+            role: 'user' | 'assistant';
+            content: string;
+            sources?: Array<{
+                index: number;
+                title: string;
+                url: string;
+            }>;
+        }>;
+    };
+    path?: never;
+    query?: never;
+    url: '/ai/chats';
+};
+
+export type PostAiChatsErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * Sign in to use AI answers
+     */
+    401: {
+        success: false;
+        code: 401;
+        message: 'Sign in to use AI answers';
+    };
+    /**
+     * AI answers are not available
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'AI answers are not available';
+    };
+};
+
+export type PostAiChatsError = PostAiChatsErrors[keyof PostAiChatsErrors];
+
+export type PostAiChatsResponses = {
+    /**
+     * Chat created
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Chat created';
+        data: {
+            id: number;
+            title: string;
+            created_at: number;
+            updated_at: number;
+        };
+    };
+};
+
+export type PostAiChatsResponse = PostAiChatsResponses[keyof PostAiChatsResponses];
+
+export type DeleteAiChatsByChatIdData = {
+    body?: never;
+    path: {
+        chatID: number;
+    };
+    query?: never;
+    url: '/ai/chats/{chatID}';
+};
+
+export type DeleteAiChatsByChatIdErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * Sign in to use AI answers
+     */
+    401: {
+        success: false;
+        code: 401;
+        message: 'Sign in to use AI answers';
+    };
+    /**
+     * Chat not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Chat not found';
+    };
+};
+
+export type DeleteAiChatsByChatIdError = DeleteAiChatsByChatIdErrors[keyof DeleteAiChatsByChatIdErrors];
+
+export type DeleteAiChatsByChatIdResponses = {
+    /**
+     * Chat deleted
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Chat deleted';
+        data: null;
+    };
+};
+
+export type DeleteAiChatsByChatIdResponse = DeleteAiChatsByChatIdResponses[keyof DeleteAiChatsByChatIdResponses];
+
+export type GetAiChatsByChatIdData = {
+    body?: never;
+    path: {
+        chatID: number;
+    };
+    query?: never;
+    url: '/ai/chats/{chatID}';
+};
+
+export type GetAiChatsByChatIdErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * Sign in to use AI answers
+     */
+    401: {
+        success: false;
+        code: 401;
+        message: 'Sign in to use AI answers';
+    };
+    /**
+     * Chat not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Chat not found';
+    };
+};
+
+export type GetAiChatsByChatIdError = GetAiChatsByChatIdErrors[keyof GetAiChatsByChatIdErrors];
+
+export type GetAiChatsByChatIdResponses = {
+    /**
+     * Chat retrieved
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Chat retrieved';
+        data: {
+            id: number;
+            title: string;
+            created_at: number;
+            updated_at: number;
+            messages: Array<{
+                id: number;
+                role: 'user' | 'assistant';
+                content: string;
+                /**
+                 * Search results the answer cites as [n]
+                 */
+                sources: Array<{
+                    index: number;
+                    title: string;
+                    url: string;
+                }>;
+                /**
+                 * The web search the answer is grounded in (follow-ups are rewritten)
+                 */
+                search_query: string | null;
+                created_at: number;
+            }>;
+        };
+    };
+};
+
+export type GetAiChatsByChatIdResponse = GetAiChatsByChatIdResponses[keyof GetAiChatsByChatIdResponses];
+
+export type PostAiChatsByChatIdMessagesData = {
+    body: {
+        content: string;
+        language?: string;
+        /**
+         * Stream as Server-Sent Events (default) or return JSON
+         */
+        stream?: boolean;
+    };
+    path: {
+        chatID: number;
+    };
+    query?: never;
+    url: '/ai/chats/{chatID}/messages';
+};
+
+export type PostAiChatsByChatIdMessagesErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * Sign in to use AI answers
+     */
+    401: {
+        success: false;
+        code: 401;
+        message: 'Sign in to use AI answers';
+    };
+    /**
+     * AI answers are not available
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'AI answers are not available';
+    };
+    /**
+     * Chat not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Chat not found';
+    };
+    /**
+     * The AI endpoint failed
+     */
+    500: {
+        success: false;
+        code: 500;
+        message: 'The AI endpoint failed';
+    };
+};
+
+export type PostAiChatsByChatIdMessagesError = PostAiChatsByChatIdMessagesErrors[keyof PostAiChatsByChatIdMessagesErrors];
+
+export type PostAiChatsByChatIdMessagesResponses = {
+    /**
+     * Answer generated
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Answer generated';
+        data: {
+            /**
+             * The stored answer
+             */
+            message: {
+                id: number;
+                role: 'user' | 'assistant';
+                content: string;
+                /**
+                 * Search results the answer cites as [n]
+                 */
+                sources: Array<{
+                    index: number;
+                    title: string;
+                    url: string;
+                }>;
+                /**
+                 * The web search the answer is grounded in (follow-ups are rewritten)
+                 */
+                search_query: string | null;
+                created_at: number;
+            };
+            /**
+             * The model that answered — only returned to admins
+             */
+            model: string | null;
+            /**
+             * The chat after the turn (title, updated_at)
+             */
+            chat: {
+                id: number;
+                title: string;
+                created_at: number;
+                updated_at: number;
+            };
+        };
+    };
+};
+
+export type PostAiChatsByChatIdMessagesResponse = PostAiChatsByChatIdMessagesResponses[keyof PostAiChatsByChatIdMessagesResponses];
 
 export type GetBangsSuggestData = {
     body?: never;

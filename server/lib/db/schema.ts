@@ -199,3 +199,48 @@ export const ddgBangs = sqliteTable("ddg_bangs", {
 	subcategory: text(),
 	relevance: integer().notNull().default(0),
 });
+
+/**
+ * A stored AI conversation ("AI mode"), started from an AI answer or on `/ai`.
+ *
+ * @deprecated Use DB.Tables.aiChats to access this table.
+ */
+export const aiChats = sqliteTable(
+	"ai_chats",
+	{
+		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
+		user_id: integer()
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		title: text().notNull(),
+		created_at: SQLUtils.getCreatedAtColumn(),
+		// Bumped on every new message; the history is sorted by it.
+		updated_at: SQLUtils.getCreatedAtColumn("updated_at"),
+	},
+	(table) => [index("ai_chats_user_id_idx").on(table.user_id, table.updated_at)],
+);
+
+/**
+ * One message of an AI chat. Assistant messages keep the search results they cite as `[n]`.
+ *
+ * @deprecated Use DB.Tables.aiChatMessages to access this table.
+ */
+export const aiChatMessages = sqliteTable(
+	"ai_chat_messages",
+	{
+		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
+		chat_id: integer()
+			.notNull()
+			.references(() => aiChats.id, { onDelete: "cascade" }),
+		role: text({ enum: ["user", "assistant"] }).notNull(),
+		content: text().notNull(),
+		sources: text({ mode: "json" })
+			.$type<Array<{ index: number; title: string; url: string }>>()
+			.notNull()
+			.default(sql`'[]'`),
+		// The web search an assistant message is grounded in (follow-ups are rewritten).
+		search_query: text(),
+		created_at: SQLUtils.getCreatedAtColumn(),
+	},
+	(table) => [index("ai_chat_messages_chat_id_idx").on(table.chat_id)],
+);

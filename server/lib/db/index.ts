@@ -122,6 +122,9 @@ export namespace DB.Tables {
 	export const proxies = TableSchema.proxies;
 	export const bangs = TableSchema.bangs;
 	export const ddgBangs = TableSchema.ddgBangs;
+
+	export const aiChats = TableSchema.aiChats;
+	export const aiChatMessages = TableSchema.aiChatMessages;
 }
 
 export namespace DB.Models {
@@ -141,4 +144,7 @@ export namespace DB.Models {
 	export type Proxy = typeof DB.Tables.proxies.$inferSelect;
 	export type Bang = typeof DB.Tables.bangs.$inferSelect;
 	export type DDGBang = typeof DB.Tables.ddgBangs.$inferSelect;
+
+	export type AIChat = typeof DB.Tables.aiChats.$inferSelect;
+	export type AIChatMessage = typeof DB.Tables.aiChatMessages.$inferSelect;
 }

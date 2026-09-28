@@ -131,8 +131,12 @@ export class SearchService {
 			number_of_results: outcome.totalResults,
 			time_ms: Math.round(performance.now() - started),
 			cached,
+			// AI answers are for signed-in users only, also on public instances.
 			ai_available:
-				category === "general" && prefs.ai_mode !== "off" && (await SettingsHandler.isAIAvailable()),
+				context.userID !== null &&
+				category === "general" &&
+				prefs.ai_mode !== "off" &&
+				(await SettingsHandler.isAIAvailable()),
 		};
 	}
 

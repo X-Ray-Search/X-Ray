@@ -1,5 +1,8 @@
 <script setup lang="ts">
-/** Home: logo, one search box, nothing else in the way. */
+/**
+ * Home: logo, one search box, nothing else in the way. Signed-out visitors of a private instance
+ * are sent to the login page before they get here (auth.global.ts).
+ */
 import { useInstanceStore } from "~/composables/stores/useInstanceStore";
 import { useSearchPreferencesStore } from "~/composables/stores/useSearchPreferencesStore";
 
@@ -7,7 +10,6 @@ const instance = await useInstanceStore().use();
 const preferences = await useSearchPreferencesStore().use();
 
 const name = computed(() => instance.value?.name ?? "X-Ray");
-const canSearch = computed(() => instance.value?.can_search ?? false);
 const engineCount = computed(() => instance.value?.engines.length ?? 0);
 
 usePageSeo({
@@ -55,30 +57,15 @@ const tips = [
 
 			<div class="mt-10 w-full max-w-2xl">
 				<SearchBox
-					v-if="canSearch"
 					v-model="query"
 					size="lg"
 					autofocus
 					:image-proxy="preferences?.effective.image_proxy ?? true"
 					@submit="submit"
 				/>
-
-				<div
-					v-else
-					class="flex flex-col items-center gap-4 rounded-2xl border border-slate-800 bg-slate-950/70 px-6 py-8 text-center backdrop-blur"
-				>
-					<span class="flex size-12 items-center justify-center rounded-xl bg-primary/10">
-						<UIcon name="i-lucide-lock" class="size-6 text-primary" />
-					</span>
-					<div>
-						<p class="text-lg font-medium text-white">This instance is private</p>
-						<p class="mt-1 text-sm text-slate-400">Sign in with the account your administrator gave you to start searching.</p>
-					</div>
-					<UButton to="/auth/login" icon="i-lucide-log-in" label="Sign in" color="primary" size="lg" />
-				</div>
 			</div>
 
-			<div v-if="canSearch" class="mt-5 flex flex-wrap justify-center gap-2">
+			<div class="mt-5 flex flex-wrap justify-center gap-2">
 				<button
 					v-for="tip in tips"
 					:key="tip.query"

@@ -6,12 +6,15 @@ const props = defineProps<{
 	timeRange: TimeRange | null;
 	imageProxy: boolean;
 	disableSuggestions?: boolean;
+	/** Show the "AI mode" tab (signed in and AI available). */
+	aiMode?: boolean;
 }>();
 
 const emit = defineEmits<{
 	submit: [query: string];
 	category: [category: SearchCategory];
 	timeRange: [range: TimeRange | null];
+	aiMode: [];
 }>();
 
 const query = defineModel<string>({ required: true });
@@ -25,10 +28,13 @@ const selectedRange = computed({
 
 <template>
 	<header class="sticky top-0 z-40 border-b border-slate-800/80 bg-[rgb(7_8_11/0.85)] backdrop-blur-xl">
-		<div class="flex items-center gap-3 px-4 pt-3 sm:gap-6 sm:px-6 lg:px-8">
-			<NuxtLink to="/" class="shrink-0" aria-label="X-Ray home">
-				<ImgAppIcon class="size-10" />
-			</NuxtLink>
+		<!-- From lg the logo column fills the gutter, so the search box lines up with the results. -->
+		<div class="flex items-center gap-3 px-4 pt-3 sm:gap-6 sm:px-6 lg:gap-0 lg:px-8">
+			<div class="flex shrink-0 lg:w-[calc(var(--search-gutter)-2rem)]">
+				<NuxtLink to="/" aria-label="X-Ray home">
+					<ImgAppIcon class="size-10" />
+				</NuxtLink>
+			</div>
 			<div class="min-w-0 flex-1 lg:max-w-3xl">
 				<SearchBox
 					v-model="query"
@@ -42,8 +48,17 @@ const selectedRange = computed({
 			</div>
 		</div>
 
-		<div class="flex items-center gap-2 overflow-x-auto px-4 sm:px-6 lg:pl-[5.5rem]">
+		<div class="flex items-center gap-2 overflow-x-auto px-4 sm:px-6 lg:pr-8 lg:pl-[calc(var(--search-gutter)-0.75rem)]">
 			<nav class="flex items-center gap-1" aria-label="Search categories">
+				<button
+					v-if="aiMode"
+					type="button"
+					class="relative flex items-center gap-1.5 px-3 py-3 text-sm whitespace-nowrap text-slate-400 transition-colors hover:text-slate-200"
+					@click="emit('aiMode')"
+				>
+					<UIcon name="i-lucide-sparkles" class="size-4 text-primary" />
+					AI mode
+				</button>
 				<button
 					v-for="item in SEARCH_CATEGORIES"
 					:key="item.id"

@@ -393,6 +393,8 @@ describe("AI answers", () => {
 		});
 		expect(answer.answer).toBe("B is the answer [1].");
 		expect(answer.sources[0]?.url).toBe("https://www.b.example/page/");
+		// Only admins see which model answered.
+		expect(answer.model).toBeNull();
 		expect(lastRequest.model).toBe("test-model");
 		expect(lastRequest.messages[1].content).toContain("[1] B");
 
@@ -409,7 +411,25 @@ describe("AI answers", () => {
 			.map((m) => JSON.parse(m[1]!).text)
 			.join("");
 		expect(text).toBe("B is the answer [1].");
-		expect(body).toContain("event: done");
+		expect(body).toContain('event: done\ndata: {"model":null}');
+	});
+
+	test("shows the model to admins", async () => {
+		const admin = await seedUser("admin");
+		const answer = await makeAPIRequest<SearchModel.AI.Response>("/v1/search/ai", {
+			method: "POST",
+			authToken: (await seedSession(admin.id)).token,
+			body: { q: "merge", stream: false },
+			expectedBodySchema: SearchModel.AI.Response,
+		});
+		expect(answer.model).toBe("test-model");
+	});
+
+	test("need sign-in, also on public instances", async () => {
+		await SettingsHandler.updateInstance({ search_access: "public" });
+		expect((await search("merge", {}, null)).ai_available).toBe(false);
+		await makeAPIRequest("/v1/search/ai", { method: "POST", body: { q: "merge" } }, 401);
+		await SettingsHandler.updateInstance({ search_access: "authenticated" });
 	});
 
 	test("respects the user's ai_mode", async () => {

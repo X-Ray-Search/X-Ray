@@ -1,6 +1,7 @@
 export const DOCS_TAGS = {
 	INSTANCE: "Instance",
 	SEARCH: "Search",
+	AI: "AI",
 	BANGS: "Bangs",
 	MEDIA_PROXY: "Media Proxy",
 

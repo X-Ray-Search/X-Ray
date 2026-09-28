@@ -34,7 +34,8 @@ const accessItems = [
 	{
 		label: "Anyone",
 		value: "public",
-		description: "Everyone can search; anonymous searches are rate limited per IP.",
+		description:
+			"Everyone can search; anonymous searches are rate limited per IP. AI answers stay limited to signed-in users.",
 	},
 ];
 
