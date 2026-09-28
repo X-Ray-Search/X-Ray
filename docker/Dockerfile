@@ -21,6 +21,7 @@ ENV NODE_ENV=production \
 	PORT=12418 \
 	XRAY_DB_PATH=/opt/x-ray-search/search/data/db.sqlite \
 	XRAY_DB_AUTO_MIGRATE=true \
+	XRAY_DB_MIGRATION_DIR=./app/drizzle/migrations \
 	XRAY_CONFIG_BASE_DIR=/opt/x-ray-search/search/config \
 	XRAY_LOG_DIR=/opt/x-ray-search/search/data/logs
 

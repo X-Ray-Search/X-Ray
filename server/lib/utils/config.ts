@@ -116,6 +116,7 @@ export class ConfigHandler {
 
 		DB_PATH: CS.string().default("./data/db.sqlite"),
 		DB_AUTO_MIGRATE: CS.boolean().default(true),
+		DB_MIGRATION_DIR: CS.string().default("./drizzle/migrations"),
 
 		LOG_DIR: CS.string().default("./data/logs"),
 		CONFIG_BASE_DIR: CS.string().default("./config"),

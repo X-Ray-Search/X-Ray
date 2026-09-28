@@ -12,7 +12,7 @@ import type { DrizzleDB } from "./utils";
 export class DB {
 	protected static db: DrizzleDB.BunSQLite;
 
-	static async init(path: string, autoMigrate: boolean, configBaseDir: string) {
+	static async init(path: string, autoMigrate: boolean, configBaseDir: string, migrationsFolder: string) {
 		await fs_mkdir(path_dirname(path), { recursive: true });
 		await fs_mkdir(configBaseDir, { recursive: true });
 
@@ -20,7 +20,6 @@ export class DB {
 		if (autoMigrate) {
 			Logger.info("Running database migrations...");
 
-			let migrationsFolder = "drizzle/migrations";
 			if (Bun?.isStandaloneExecutable) {
 				migrationsFolder = path_join(import.meta.dir, migrationsFolder);
 			}

@@ -13,6 +13,9 @@ build-and-push:
     paths:
       - .bun/install/cache/
       - node_modules/
+  
+  tags:
+    - glar-linux-medium-amd64
 
   before_script:
   

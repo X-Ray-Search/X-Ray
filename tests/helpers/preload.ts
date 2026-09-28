@@ -17,6 +17,7 @@ function setTestEnv(rootDir: string) {
 
 		XRAY_DB_PATH: path.join(rootDir, "db.sqlite"),
 		XRAY_DB_AUTO_MIGRATE: true,
+		XRAY_DB_MIGRATION_DIR: "./drizzle/migrations",
 
 		XRAY_LOG_DIR: path.join(rootDir, "logs"),
 		XRAY_CONFIG_BASE_DIR: rootDir,
@@ -94,7 +95,7 @@ beforeAll(async () => {
 
 	const config = await ConfigHandler.loadConfig();
 
-	await DB.init(path.join(TMP_ROOT, "db.sqlite"), true, TMP_ROOT);
+	await DB.init(path.join(TMP_ROOT, "db.sqlite"), true, TMP_ROOT, "./drizzle/migrations");
 
 	// EmailService is NOT initialised here — tests that need it call
 	// EmailService.init(mockTransport) in their own beforeAll.

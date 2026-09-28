@@ -71,6 +71,7 @@ Deployment settings are environment variables (see [`example.env`](example.env))
 | `XRAY_APP_URL` | — (required) | Public URL, used in password-reset links |
 | `XRAY_DB_PATH` | `./data/db.sqlite` | SQLite database |
 | `XRAY_DB_AUTO_MIGRATE` | `true` | Apply migrations on start |
+| `XRAY_DB_MIGRATION_DIR` | `./drizzle/migrations` | Drizzle Migration Directory (only important at runtime) |
 | `XRAY_CONFIG_BASE_DIR` | `./config` | Runtime files (initial admin reset link) |
 | `XRAY_LOG_DIR` / `XRAY_LOG_LEVEL` | `./data/logs` / `info` | |
 | `XRAY_TRUST_PROXY` | `false` | Use `X-Forwarded-For` / `X-Real-IP` from a reverse proxy |
