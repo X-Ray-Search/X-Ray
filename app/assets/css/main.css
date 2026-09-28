@@ -1,27 +1,115 @@
 /*
- * main.css — Tailwind v4 CSS-first entry (no tailwind.config.js).
- *
- * Drop into `app/assets/css/main.css` and reference it from `nuxt.config.ts`:
- *   css: ["~/assets/css/main.css"]
- * Dark-first; pick your project's `--font-sans` and NuxtUI `primary`/`neutral` in app.config.ts.
+ * main.css — Tailwind v4 CSS-first entry (no tailwind.config.js). Dark-only.
  * See docs/06-frontend-nuxt.md and docs/15-design-system.md.
  */
 @import "tailwindcss";
 @import "@nuxt/ui";
 
-@theme {
+@theme static {
 	--font-sans: "Rubik", sans-serif;
+	--font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+	/* X-Ray cyan — `primary` in app.config.ts. The dark theme uses shade 400. */
+	--color-xray-50: #ebfffd;
+	--color-xray-100: #c7fff9;
+	--color-xray-200: #90fff3;
+	--color-xray-300: #4ffbe9;
+	--color-xray-400: #00f0dc;
+	--color-xray-500: #00d2c0;
+	--color-xray-600: #00a89c;
+	--color-xray-700: #00857e;
+	--color-xray-800: #066964;
+	--color-xray-900: #0a5753;
+	--color-xray-950: #003534;
 }
 
 :root {
 	color-scheme: dark;
 }
 
+/* Surfaces a notch darker than slate-900 so overlays match the near-black app background. */
+.dark {
+	--ui-bg: #0b0d12;
+	--ui-bg-muted: #10131a;
+	--ui-bg-elevated: #141821;
+	--ui-bg-accented: #1b202b;
+}
+
 html {
 	scroll-behavior: smooth;
 }
 
-/* slate-950 — the standard app background across the ecosystem. */
+/* Near-black app background (the X-Ray look); used on every layout root. */
 .main-bg-color {
-	background-color: rgb(2 6 23);
+	background-color: rgb(7 8 11);
+}
+
+/* Faint grid behind the home page, fading out towards the edges. */
+.xray-grid {
+	background-image:
+		linear-gradient(to right, rgb(148 163 184 / 0.05) 1px, transparent 1px),
+		linear-gradient(to bottom, rgb(148 163 184 / 0.05) 1px, transparent 1px);
+	background-size: 44px 44px;
+	mask-image: radial-gradient(ellipse 70% 60% at 50% 45%, black 30%, transparent 75%);
+}
+
+/* Rendered AI answers (see utils/markdown.ts). */
+.xray-prose p {
+	margin: 0.5rem 0;
+}
+.xray-prose ul,
+.xray-prose ol {
+	margin: 0.5rem 0;
+	padding-left: 1.25rem;
+}
+.xray-prose ul {
+	list-style: disc;
+}
+.xray-prose ol {
+	list-style: decimal;
+}
+.xray-prose li {
+	margin: 0.2rem 0;
+}
+.xray-prose code {
+	font-family: var(--font-mono);
+	font-size: 0.85em;
+	padding: 0.1rem 0.3rem;
+	border-radius: 0.25rem;
+	background: rgb(30 41 59 / 0.7);
+}
+.xray-prose pre {
+	margin: 0.75rem 0;
+	padding: 0.75rem;
+	overflow-x: auto;
+	border-radius: 0.5rem;
+	background: rgb(15 23 42 / 0.8);
+}
+.xray-prose pre code {
+	padding: 0;
+	background: transparent;
+}
+.xray-prose h3,
+.xray-prose h4 {
+	margin: 0.75rem 0 0.25rem;
+	font-weight: 600;
+}
+.xray-prose a.xray-cite {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 1.15rem;
+	height: 1.15rem;
+	padding: 0 0.25rem;
+	margin: 0 0.1rem;
+	font-family: var(--font-mono);
+	font-size: 0.65rem;
+	vertical-align: super;
+	border-radius: 0.3rem;
+	color: var(--ui-primary);
+	background: color-mix(in oklab, var(--ui-primary) 12%, transparent);
+	text-decoration: none;
+}
+.xray-prose a.xray-cite:hover {
+	background: color-mix(in oklab, var(--ui-primary) 25%, transparent);
 }

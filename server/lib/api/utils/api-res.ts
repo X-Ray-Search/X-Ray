@@ -1,4 +1,4 @@
-import { type Context } from "hono";
+import type { Context } from "hono";
 import { z } from "zod";
 
 export class APIResponse {
@@ -75,9 +75,7 @@ export namespace APIResponse.Utils {
 	}
 
 	export function createErrorSchemaFactory<Code extends number>(code: Code) {
-		return function <Message extends string>(message: Message) {
-			return genericErrorSchema(code, message);
-		};
+		return <Message extends string>(message: Message) => genericErrorSchema(code, message);
 	}
 }
 

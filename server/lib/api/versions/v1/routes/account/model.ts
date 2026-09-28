@@ -1,6 +1,6 @@
 import { createSelectSchema, createUpdateSchema } from "drizzle-zod";
-import { DB } from "../../../../../db";
 import { z } from "zod";
+import { DB } from "../../../../../db";
 import { UserDataPolicies } from "../../../../utils/shared-models/accountData";
 
 export namespace AccountModel.GetInfo {

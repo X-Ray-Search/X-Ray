@@ -16,7 +16,7 @@ export const router = new Hono().basePath("/proxies");
 
 const PROXY_KEY = "adminProxy";
 
-async function toModels(rows: DB.Models.Proxy[]): Promise<AdminProxiesModel.Proxy[]> {
+async function toModels(rows: DB.Models.Proxy[]): Promise<AdminProxiesModel.Item[]> {
 	const [engines, settings] = await Promise.all([
 		DB.instance().select().from(DB.Tables.searchEngines).all(),
 		SettingsHandler.getInstance(),
@@ -30,17 +30,24 @@ async function toModels(rows: DB.Models.Proxy[]): Promise<AdminProxiesModel.Prox
 }
 
 /** Validate settings against the proxy type; secret fields sent empty keep their stored value. */
-function validateSettings(type: string, settings: Record<string, any> | undefined, previous: Record<string, any> = {}) {
+function validateSettings(
+	type: string,
+	settings: Record<string, any> | undefined,
+	previous: Record<string, any> = {},
+) {
 	const cls = ProxyTransportRegistry.get(type);
 	if (!cls) return { error: "Unknown proxy type" } as const;
 	const merged = { ...previous, ...settings };
 	for (const field of cls.definition.secretFields ?? []) {
-		if (settings && (settings[field] === undefined || settings[field] === "")) merged[field] = previous[field];
+		if (settings && (settings[field] === undefined || settings[field] === ""))
+			merged[field] = previous[field];
 	}
 	const parsed = cls.definition.settings.safeParse(merged);
 	if (!parsed.success) {
 		const issue = parsed.error.issues[0];
-		return { error: `Invalid settings${issue?.path.length ? ` (${issue.path.join(".")})` : ""}: ${issue?.message}` } as const;
+		return {
+			error: `Invalid settings${issue?.path.length ? ` (${issue.path.join(".")})` : ""}: ${issue?.message}`,
+		} as const;
 	}
 	return { settings: parsed.data as Record<string, any> } as const;
 }
@@ -93,7 +100,12 @@ router.post(
 		const body = c.req.valid("json") as AdminProxiesModel.TestConfigBody;
 		const checked = validateSettings(body.proxy_type, body.settings);
 		if ("error" in checked) return APIResponse.badRequest(c, checked.error!);
-		const transport = ProxyManager.instantiate({ id: 0, name: "test", proxy_type: body.proxy_type, settings: checked.settings });
+		const transport = ProxyManager.instantiate({
+			id: 0,
+			name: "test",
+			proxy_type: body.proxy_type,
+			settings: checked.settings,
+		});
 		try {
 			return APIResponse.success(c, "Proxy tested", await transport.test());
 		} finally {
@@ -109,12 +121,16 @@ router.get(
 		summary: "List proxies",
 		tags: [DOCS_TAGS.ADMIN_API.PROXIES],
 		responses: APIResponseSpec.describeBasic(
-			APIResponseSpec.success("Proxies retrieved", AdminProxiesModel.Proxy.array()),
+			APIResponseSpec.success("Proxies retrieved", AdminProxiesModel.Item.array()),
 		),
 	}),
 
 	async (c) => {
-		const rows = await DB.instance().select().from(DB.Tables.proxies).orderBy(DB.Tables.proxies.id).all();
+		const rows = await DB.instance()
+			.select()
+			.from(DB.Tables.proxies)
+			.orderBy(DB.Tables.proxies.id)
+			.all();
 		return APIResponse.success(c, "Proxies retrieved", await toModels(rows));
 	},
 );
@@ -125,7 +141,9 @@ router.post(
 	APIRouteSpec.authenticated({
 		summary: "Create proxy",
 		tags: [DOCS_TAGS.ADMIN_API.PROXIES],
-		responses: APIResponseSpec.describeWithWrongInputs(APIResponseSpec.created("Proxy created", AdminProxiesModel.Proxy)),
+		responses: APIResponseSpec.describeWithWrongInputs(
+			APIResponseSpec.created("Proxy created", AdminProxiesModel.Item),
+		),
 	}),
 
 	zValidator("json", AdminProxiesModel.Body),
@@ -150,18 +168,21 @@ router.use(
 	zValidator("param", AdminProxiesModel.Params),
 
 	async (c, next) => {
-		// @ts-ignore
+		// @ts-expect-error
 		const { proxyID } = c.req.valid("param") as AdminProxiesModel.Params;
-		const row = await DB.instance().select().from(DB.Tables.proxies).where(eq(DB.Tables.proxies.id, proxyID)).get();
+		const row = await DB.instance()
+			.select()
+			.from(DB.Tables.proxies)
+			.where(eq(DB.Tables.proxies.id, proxyID))
+			.get();
 		if (!row) return APIResponse.notFound(c, "Proxy not found");
-		// @ts-ignore
+		// @ts-expect-error
 		c.set(PROXY_KEY, row);
 		await next();
 	},
 );
 
 function proxyOf(c: Context) {
-	// @ts-ignore
 	return c.get(PROXY_KEY) as DB.Models.Proxy;
 }
 
@@ -172,7 +193,7 @@ router.get(
 		summary: "Get proxy",
 		tags: [DOCS_TAGS.ADMIN_API.PROXIES],
 		responses: APIResponseSpec.describeBasic(
-			APIResponseSpec.success("Proxy retrieved", AdminProxiesModel.Proxy),
+			APIResponseSpec.success("Proxy retrieved", AdminProxiesModel.Item),
 			APIResponseSpec.notFound("Proxy not found"),
 		),
 	}),
@@ -188,7 +209,7 @@ router.put(
 		description: "Partial update. Secret settings sent empty keep their stored value.",
 		tags: [DOCS_TAGS.ADMIN_API.PROXIES],
 		responses: APIResponseSpec.describeWithWrongInputs(
-			APIResponseSpec.success("Proxy updated", AdminProxiesModel.Proxy),
+			APIResponseSpec.success("Proxy updated", AdminProxiesModel.Item),
 			APIResponseSpec.notFound("Proxy not found"),
 		),
 	}),
@@ -239,7 +260,9 @@ router.delete(
 
 		const settings = await SettingsHandler.getInstance();
 		if (settings.default_proxy_ids.includes(row.id)) {
-			await SettingsHandler.updateInstance({ default_proxy_ids: settings.default_proxy_ids.filter((id) => id !== row.id) });
+			await SettingsHandler.updateInstance({
+				default_proxy_ids: settings.default_proxy_ids.filter((id) => id !== row.id),
+			});
 		}
 		await afterChange();
 		await SearchEngineManager.reload();

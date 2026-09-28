@@ -10,11 +10,15 @@ function parseConversion(query: string) {
 		.toLowerCase()
 		.replace(/^(convert|how many|how much)\s+/, "")
 		.replace(/\?$/, "")
-		.match(/^([$€£¥₹]?)\s*(-?\d+(?:[.,]\d+)*(?:e[+-]?\d+)?)\s*(.*?)\s+(?:to|in|into|as|=|->|→)\s+(.+)$/);
+		.match(
+			/^([$€£¥₹]?)\s*(-?\d+(?:[.,]\d+)*(?:e[+-]?\d+)?)\s*(.*?)\s+(?:to|in|into|as|=|->|→)\s+(.+)$/,
+		);
 	if (!match) return null;
 	const [, symbol = "", rawNumber = "", from = "", to = ""] = match;
 	// "1,000" is a thousands separator, "1,5" a decimal comma.
-	const normalized = /,\d{3}(\D|$)/.test(rawNumber) ? rawNumber.replace(/,/g, "") : rawNumber.replace(",", ".");
+	const normalized = /,\d{3}(\D|$)/.test(rawNumber)
+		? rawNumber.replace(/,/g, "")
+		: rawNumber.replace(",", ".");
 	const value = Number(normalized);
 	if (!Number.isFinite(value)) return null;
 	return { symbol, value, from: from.trim(), to: to.trim() };
@@ -73,7 +77,10 @@ export class CurrencyProvider extends InstantAnswerProvider {
 		examples: ["100 usd to eur", "$50 in gbp", "2500 yen to euro"],
 	});
 
-	private static readonly rates = new TTLCache<{ date: string; rates: Record<string, number> }>(64, 3_600_000);
+	private static readonly rates = new TTLCache<{ date: string; rates: Record<string, number> }>(
+		64,
+		3_600_000,
+	);
 
 	private static readonly ALIASES: Record<string, string> = {
 		$: "USD",
@@ -118,9 +125,37 @@ export class CurrencyProvider extends InstantAnswerProvider {
 
 	/** Currencies published by the ECB reference rates. */
 	static readonly CODES = new Set([
-		"AUD", "BGN", "BRL", "CAD", "CHF", "CNY", "CZK", "DKK", "EUR", "GBP", "HKD", "HUF", "IDR", "ILS",
-		"INR", "ISK", "JPY", "KRW", "MXN", "MYR", "NOK", "NZD", "PHP", "PLN", "RON", "SEK", "SGD", "THB",
-		"TRY", "USD", "ZAR",
+		"AUD",
+		"BGN",
+		"BRL",
+		"CAD",
+		"CHF",
+		"CNY",
+		"CZK",
+		"DKK",
+		"EUR",
+		"GBP",
+		"HKD",
+		"HUF",
+		"IDR",
+		"ILS",
+		"INR",
+		"ISK",
+		"JPY",
+		"KRW",
+		"MXN",
+		"MYR",
+		"NOK",
+		"NZD",
+		"PHP",
+		"PLN",
+		"RON",
+		"SEK",
+		"SGD",
+		"THB",
+		"TRY",
+		"USD",
+		"ZAR",
 	]);
 
 	private static code(value: string): string | null {
@@ -132,7 +167,11 @@ export class CurrencyProvider extends InstantAnswerProvider {
 	async answer(query: string, ctx: InstantAnswerProvider.Context) {
 		const parsed = parseConversion(query);
 		if (!parsed) return null;
-		const from = parsed.from ? CurrencyProvider.code(parsed.from) : parsed.symbol ? CurrencyProvider.code(parsed.symbol) : null;
+		const from = parsed.from
+			? CurrencyProvider.code(parsed.from)
+			: parsed.symbol
+				? CurrencyProvider.code(parsed.symbol)
+				: null;
 		const to = CurrencyProvider.code(parsed.to);
 		if (!from || !to || from === to) return null;
 		// "10 pounds to kg" is a weight conversion.

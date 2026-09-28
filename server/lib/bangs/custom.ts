@@ -9,7 +9,9 @@ import { BangService } from ".";
  */
 export class CustomBangs {
 	private static ownerFilter(ownerID: number | null) {
-		return ownerID === null ? isNull(DB.Tables.bangs.owner_user_id) : eq(DB.Tables.bangs.owner_user_id, ownerID);
+		return ownerID === null
+			? isNull(DB.Tables.bangs.owner_user_id)
+			: eq(DB.Tables.bangs.owner_user_id, ownerID);
 	}
 
 	private static strip(row: DB.Models.Bang): CustomBangModels.Bang {
@@ -23,7 +25,12 @@ export class CustomBangs {
 	}
 
 	static async list(ownerID: number | null) {
-		const rows = await DB.instance().select().from(DB.Tables.bangs).where(this.ownerFilter(ownerID)).orderBy(DB.Tables.bangs.trigger).all();
+		const rows = await DB.instance()
+			.select()
+			.from(DB.Tables.bangs)
+			.where(this.ownerFilter(ownerID))
+			.orderBy(DB.Tables.bangs.trigger)
+			.all();
 		return rows.map((row) => this.strip(row));
 	}
 
@@ -35,7 +42,10 @@ export class CustomBangs {
 			.get();
 	}
 
-	static async create(ownerID: number | null, body: CustomBangModels.Body): Promise<CustomBangModels.Bang | "conflict"> {
+	static async create(
+		ownerID: number | null,
+		body: CustomBangModels.Body,
+	): Promise<CustomBangModels.Bang | "conflict"> {
 		if (await this.findByTrigger(ownerID, body.trigger)) return "conflict";
 		const row = await DB.instance()
 			.insert(DB.Tables.bangs)
@@ -61,7 +71,12 @@ export class CustomBangs {
 		const clash = await this.findByTrigger(ownerID, body.trigger);
 		if (clash && clash.id !== id) return "conflict";
 
-		const row = await DB.instance().update(DB.Tables.bangs).set(body).where(eq(DB.Tables.bangs.id, id)).returning().get();
+		const row = await DB.instance()
+			.update(DB.Tables.bangs)
+			.set(body)
+			.where(eq(DB.Tables.bangs.id, id))
+			.returning()
+			.get();
 		await this.afterChange(ownerID);
 		return this.strip(row);
 	}

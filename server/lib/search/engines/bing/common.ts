@@ -1,21 +1,33 @@
+import { z } from "zod";
 import type { SearchTypes } from "../../types";
 import { SearchUtils } from "../../utils";
 
 /** Shared Bing plumbing: market cookies, safe search, and decoding of `bing.com/ck/a` links. */
 export class BingCommon {
+	/** Settings shared by all Bing engines. */
+	static readonly Settings = z.object({
+		market: z
+			.string()
+			.regex(/^([a-z]{2}-[a-z]{2})?$/i, "Use a market like `en-us`, or leave empty")
+			.default("")
+			.describe(
+				"Bing market (e.g. `en-us`). Leave empty to let Bing use the exit IP's country — a market that does not match the exit IP makes Bing return unrelated results.",
+			),
+	});
+
 	/**
-	 * Market/UI language go into the `_EDGE_*` cookies — the `setlang`/`cc`/`mkt` query params
-	 * make Bing return an empty result page for non-browser clients.
+	 * Safe search always; the market only when configured. Market/UI language have to go into the
+	 * `_EDGE_*` cookies — the `setlang`/`cc`/`mkt` query params make Bing return an empty page.
 	 */
-	static cookies(locale: string, safesearch: SearchTypes.SafeSearch): Record<string, string> {
+	static cookies(safesearch: SearchTypes.SafeSearch, market = ""): Record<string, string> {
 		const cookies: Record<string, string> = {
 			SRCHHPGUSR: `ADLT=${["OFF", "DEMOTE", "STRICT"][safesearch]}`,
 		};
-		const { language, region } = SearchUtils.parseLocale(locale);
-		if (language) {
-			const market = `${language}-${(region ?? SearchUtils.defaultRegion(language)).toLowerCase()}`;
-			cookies._EDGE_CD = `m=${market}&u=${language}`;
-			cookies._EDGE_S = `mkt=${market}&ui=${language}`;
+		if (market) {
+			const normalized = market.toLowerCase();
+			const language = normalized.split("-")[0]!;
+			cookies._EDGE_CD = `m=${normalized}&u=${language}`;
+			cookies._EDGE_S = `mkt=${normalized}&ui=${language}`;
 		}
 		return cookies;
 	}

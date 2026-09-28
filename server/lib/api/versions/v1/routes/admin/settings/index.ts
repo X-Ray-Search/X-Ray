@@ -30,14 +30,16 @@ router.get(
 			APIResponseSpec.success("Instance settings retrieved", AdminSettingsModel.Instance.Response),
 		),
 	}),
-	async (c) => APIResponse.success(c, "Instance settings retrieved", await SettingsHandler.getInstance()),
+	async (c) =>
+		APIResponse.success(c, "Instance settings retrieved", await SettingsHandler.getInstance()),
 );
 
 router.put(
 	"/instance",
 	APIRouteSpec.authenticated({
 		summary: "Update instance settings",
-		description: "Partial update of the instance settings (access mode, SearXNG API, default proxies, …).",
+		description:
+			"Partial update of the instance settings (access mode, SearXNG API, default proxies, …).",
 		tags: [DOCS_TAGS.ADMIN_API.SETTINGS],
 		responses: APIResponseSpec.describeWithWrongInputs(
 			APIResponseSpec.success("Instance settings updated", AdminSettingsModel.Instance.Response),
@@ -72,7 +74,8 @@ router.get(
 			APIResponseSpec.success("Search defaults retrieved", AdminSettingsModel.SearchDefaults.Response),
 		),
 	}),
-	async (c) => APIResponse.success(c, "Search defaults retrieved", await SettingsHandler.getSearchDefaults()),
+	async (c) =>
+		APIResponse.success(c, "Search defaults retrieved", await SettingsHandler.getSearchDefaults()),
 );
 
 router.put(
@@ -99,10 +102,16 @@ router.get(
 		summary: "Get AI settings",
 		description: "The OpenAI compatible endpoint configuration. The API key is never returned.",
 		tags: [DOCS_TAGS.ADMIN_API.SETTINGS],
-		responses: APIResponseSpec.describeBasic(APIResponseSpec.success("AI settings retrieved", AdminSettingsModel.AI.Response)),
+		responses: APIResponseSpec.describeBasic(
+			APIResponseSpec.success("AI settings retrieved", AdminSettingsModel.AI.Response),
+		),
 	}),
 	async (c) =>
-		APIResponse.success(c, "AI settings retrieved", SettingsHandler.toPublicAIConfig(await SettingsHandler.getAIConfig())),
+		APIResponse.success(
+			c,
+			"AI settings retrieved",
+			SettingsHandler.toPublicAIConfig(await SettingsHandler.getAIConfig()),
+		),
 );
 
 router.put(
@@ -111,7 +120,9 @@ router.put(
 		summary: "Update AI settings",
 		description: "Partial update. Omit `api_key` to keep the stored key, send `null` to remove it.",
 		tags: [DOCS_TAGS.ADMIN_API.SETTINGS],
-		responses: APIResponseSpec.describeWithWrongInputs(APIResponseSpec.success("AI settings updated", AdminSettingsModel.AI.Response)),
+		responses: APIResponseSpec.describeWithWrongInputs(
+			APIResponseSpec.success("AI settings updated", AdminSettingsModel.AI.Response),
+		),
 	}),
 	zValidator("json", AdminSettingsModel.AI.Body),
 	async (c) => {
@@ -125,9 +136,12 @@ router.post(
 	"/ai/test",
 	APIRouteSpec.authenticated({
 		summary: "Test AI settings",
-		description: "Send a trivial prompt. Values in the body override the stored settings for this test only.",
+		description:
+			"Send a trivial prompt. Values in the body override the stored settings for this test only.",
 		tags: [DOCS_TAGS.ADMIN_API.SETTINGS],
-		responses: APIResponseSpec.describeWithWrongInputs(APIResponseSpec.success("AI endpoint tested", AdminSettingsModel.AI.TestResponse)),
+		responses: APIResponseSpec.describeWithWrongInputs(
+			APIResponseSpec.success("AI endpoint tested", AdminSettingsModel.AI.TestResponse),
+		),
 	}),
 	zValidator("json", AdminSettingsModel.AI.Body),
 	async (c) => {
@@ -140,15 +154,21 @@ router.post(
 	"/ai/models",
 	APIRouteSpec.authenticated({
 		summary: "List AI models",
-		description: "Models offered by the endpoint (`GET /models`). Body values override the stored settings.",
+		description:
+			"Models offered by the endpoint (`GET /models`). Body values override the stored settings.",
 		tags: [DOCS_TAGS.ADMIN_API.SETTINGS],
-		responses: APIResponseSpec.describeWithWrongInputs(APIResponseSpec.success("Models retrieved", AdminSettingsModel.AI.ModelsResponse)),
+		responses: APIResponseSpec.describeWithWrongInputs(
+			APIResponseSpec.success("Models retrieved", AdminSettingsModel.AI.ModelsResponse),
+		),
 	}),
 	zValidator("json", AdminSettingsModel.AI.Body),
 	async (c) => {
 		const config = await mergeAIConfig(c.req.valid("json") as AdminSettingsModel.AI.Body);
 		try {
-			return APIResponse.success(c, "Models retrieved", { models: await AIService.listModels(config), error: null });
+			return APIResponse.success(c, "Models retrieved", {
+				models: await AIService.listModels(config),
+				error: null,
+			});
 		} catch (err) {
 			return APIResponse.success(c, "Models retrieved", { models: [], error: (err as Error).message });
 		}

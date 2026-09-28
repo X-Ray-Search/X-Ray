@@ -1,90 +1,208 @@
-# <ProjectName> Full-stack Nuxt App
+# X-Ray
 
-Full-stack template: Nuxt 4 frontend **and** a Hono backend living in `server/`, mounted at `/api`.
+A self-hostable, modern and extensible **meta search engine**. X-Ray asks several search engines at
+once, merges and ranks their results, and answers many questions directly — without ads, trackers
+or profiling.
 
-## Stack
+- **Many engines, one result list** — DuckDuckGo, Bing, Brave, Wikipedia, Mojeek, YouTube, the
+  Brave Search API, other SearXNG/X-Ray instances … for web, images, news and videos. Results found
+  by several engines rank higher; blocked engines are suspended with backoff automatically.
+- **Bangs** — the ~13,000 DuckDuckGo bangs (`!w black holes`, `!gh nuxt`) plus instance-wide and
+  personal custom bangs, with live feedback in the search box. Bangs resolve on the server, so they
+  work straight from the browser address bar.
+- **Instant answers** — calculator, unit & currency conversion, time zones, weather, timers,
+  definitions, a Wikipedia panel, UUID/password/hash/colour/Base64 tools and more.
+- **Optional AI answers** — from any OpenAI compatible endpoint (OpenAI, OpenRouter, Ollama,
+  LM Studio, vLLM, …), grounded in the top results and citing them.
+- **Outbound proxies** — route engines (or everything) through HTTP(S) proxies, SOCKS5 (Tor, VPN
+  containers, `ssh -D`) or the [X-Ray HTTP proxy gateway](https://git.leicraftmc.de/X-Ray-Search/Simple-HTTP-Proxy-Gateway),
+  with rotation and fail-over.
+- **Private or public** — only signed-in users can search by default; switch to public with a
+  per-IP rate limit.
+- **SearXNG compatible API** (with API keys) — use X-Ray as the web search backend of Open WebUI,
+  Perplexica, LibreChat or any SearXNG client.
+- **Instance defaults, personal overrides** — admins set defaults for everything search related
+  (language, safe search, bangs, AI mode, engines, …); every user can override each setting.
 
-- Nuxt 4 (`app/` srcDir) + NuxtUI v4 + Tailwind v4 (CSS-first)
-- Hono + Zod + `hono-openapi` (Scalar) in `server/`, mounted at `/api` via a catch-all Nitro route
-- Drizzle ORM + `bun-sqlite`
-- Bun runtime (Nitro `bun` preset)
-- Biome formatter/linter
-- AGPL-3.0
+Built on the [LeiCraft_MC style guide](https://git.leicraftmc.de/LeiCraftMC/Style-Guides)
+full-stack template: Nuxt 4 + NuxtUI v4, Hono + Zod + OpenAPI in `server/`, Drizzle + SQLite, Bun.
 
-## Setup
+## Quick start
+
+### Docker
+
+```bash
+docker compose -f docker/docker-compose.yml up -d --build
+docker compose -f docker/docker-compose.yml logs x-ray | grep reset-password
+```
+
+Open the printed link to set the password of the `admin` user, then sign in at
+`http://localhost:12418`. Data lives in the `x-ray-data` volume (`/data`).
+
+### From source
+
+Requires [Bun](https://bun.sh) ≥ 1.3.
 
 ```bash
 bun install
 cp example.env .env
-# Copy the LeiCraftMC biome.json from the style-guide root into this project.
-# Pick a unique port (never 3000) — set it in package.json + example.env; see docs/02 — Ports.
-bun run dev
+bun run build
+bun run start              # http://localhost:12418
 ```
 
-The dev server boots Nuxt; the `server/plugins/startup.ts` Nitro plugin initializes the DB and the
-Hono `API` on boot. Endpoints are at `/api/v1/**`, `/api/health`, `/api/docs/v1`.
+On first start X-Ray creates the `admin` user and prints a password-reset link (also written to
+`./config/initial_admin_password_reset_token.txt`). It seeds the engines that need no
+configuration and downloads the DuckDuckGo bang dataset in the background.
 
-## API client
+Put a TLS-terminating reverse proxy (Caddy, nginx, Traefik) in front for anything beyond a LAN and
+set `XRAY_TRUST_PROXY=true` so rate limits see the real client IP.
 
-Generate the typed client from the in-server OpenAPI spec:
+## Configuration
+
+Deployment settings are environment variables (see [`example.env`](example.env)):
+
+| Variable | Default | |
+| --- | --- | --- |
+| `XRAY_APP_URL` | — (required) | Public URL, used in password-reset links |
+| `XRAY_DB_PATH` | `./data/db.sqlite` | SQLite database |
+| `XRAY_DB_AUTO_MIGRATE` | `true` | Apply migrations on start |
+| `XRAY_CONFIG_BASE_DIR` | `./config` | Runtime files (initial admin reset link) |
+| `XRAY_LOG_DIR` / `XRAY_LOG_LEVEL` | `./data/logs` / `info` | |
+| `XRAY_TRUST_PROXY` | `false` | Use `X-Forwarded-For` / `X-Real-IP` from a reverse proxy |
+| `XRAY_SEARCH_CACHE_TTL` | `300` | Seconds a result page is cached |
+| `XRAY_BANGS_DISABLE_AUTO_FETCH` | `false` | Never download the DuckDuckGo bang dataset |
+| `XRAY_API_DISABLE_DOCS` | `false` | Hide the API docs |
+| `XRAY_SMTP_*` | — | Optional, for password-reset emails |
+| `PORT` | `12418` | HTTP port |
+
+Everything else is configured in the dashboard (**Administration**):
+
+- **Engines** — add, configure, weight, time out, test and route engines through proxies. Every
+  engine type brings its own settings form.
+- **Proxies** — HTTP(S), SOCKS5 and X-Ray gateway proxies, with a live test that shows the exit IP.
+- **Settings › Instance** — who may search (signed-in users / anyone), anonymous rate limit,
+  SearXNG API, default proxies, bang dataset updates.
+- **Settings › Search defaults** — the defaults every user starts with.
+- **Settings › AI** — endpoint URL, key (write-only), model (with model listing), prompt, limits.
+- **Instance bangs** and **Users**.
+
+Users change their own **Preferences** (each setting shows whether it follows the instance
+default), **My bangs** and **API keys** in the dashboard.
+
+## Using X-Ray
+
+### Bangs
+
+A bang anywhere in the query redirects to another site: `!w linux` or `linux !w`. Lookup order:
+personal bangs → instance bangs → built-in category bangs → DuckDuckGo bangs.
+
+| Bang | Does |
+| --- | --- |
+| `!i`, `!img` · `!n`, `!news` · `!v`, `!videos` | Search X-Ray images / news / videos |
+| `! query` | Feeling lucky — open the first result |
+| `!w`, `!gh`, `!yt`, … | Any of the DuckDuckGo bangs |
+
+### Browser integration
+
+X-Ray publishes an [OpenSearch description](https://developer.mozilla.org/docs/Web/OpenSearch) at
+`/opensearch.xml`, so browsers offer to add it as a search engine, including address-bar
+suggestions. Search URL: `https://your-instance/search?q=%s`.
+
+### APIs
+
+- **X-Ray API** — `/api/v1/**`, documented at `/api/docs/v1` (OpenAPI at `/api/docs/v1/openapi`).
+  Authenticate with `Authorization: Bearer <session token or API key>`.
+- **SearXNG compatible API** — `/api/searxng/search?q=…&format=json|csv|rss` (GET or POST), plus
+  `/api/searxng/autocompleter` and `/api/searxng/config`. Pass an API key as
+  `Authorization: Bearer <key>`, `X-API-Key: <key>`, or `?api_key=<key>` for clients that only
+  accept a URL. Keyless access is possible only on public instances with "Require an API key" off.
 
 ```bash
-bun run api-client:generate   # reads http://localhost:3000/api/docs/v1/openapi
+curl -H "Authorization: Bearer xray_apikey_…" \
+  "https://your-instance/api/searxng/search?q=privacy&format=json"
 ```
 
-## Frontend
+## Extending
 
-The template ships a complete app shell. Delete whatever your project doesn't need.
+The three extension points are small classes registered in one place each. Their settings are Zod
+schemas, and the admin UI renders a form for them automatically.
 
-| Route | Layout | What it is |
-| --- | --- | --- |
-| `/` | `default` | Marketing landing page (hero, features, how-it-works, CTA) |
-| `/auth/login`, `/auth/forgot-password`, `/auth/reset-password` | `auth` | Login and password reset |
-| `/auth/signup` | `auth` | Signup form, **UI only**: the backend has no register route yet |
-| `/welcome` | `onboarding` | One-time onboarding after the first login |
-| `/dashboard`, `/dashboard/settings`, `/dashboard/settings/security`, `/dashboard/apikeys` | `dashboard` | Overview, profile, password/account deletion, API keys |
-| `/dashboard/admin/users` | `dashboard` | Admin-only user management |
+**Search engine** — subclass `SearchEngine` and register it in
+[`server/lib/search/engines/index.ts`](server/lib/search/engines/index.ts):
 
-Who may open what is set by the constants at the top of `app/middleware/auth.global.ts`:
-`HOME_ROUTE`, `PROTECTED_PREFIXES`, `ADMIN_PREFIXES`, `PUBLIC_ROUTES`, `ONBOARDING_ROUTE` and
-`REQUIRE_ONBOARDING`.
+```ts
+const Settings = z.object({ api_key: z.string().min(1) });
 
-Trimming it down:
+export class MyEngine extends SearchEngine<z.infer<typeof Settings>> {
+	static readonly definition = SearchEngine.define({
+		type: "my_engine",
+		name: "My Engine",
+		description: "Results from my-engine.example",
+		website: "https://my-engine.example",
+		categories: ["general"],
+		settings: Settings,
+		secretFields: ["api_key"],
+		features: { paging: true, timeRange: false, safeSearch: false, language: true },
+		requiresConfiguration: true,
+	});
 
-- **Everything behind login (no public landing page):** set `PROTECTED_PREFIXES = ["/"]` and
-  `HOME_ROUTE = "/"`, and replace `pages/index.vue` with your app's home (for example the dashboard
-  overview).
-- **No dashboard:** delete `layouts/dashboard.vue`, `pages/dashboard/` and `components/dashboard/`,
-  remove the Dashboard links from `components/layout/Header.vue` and `Footer.vue`, and point
-  `PROTECTED_PREFIXES` at your protected pages.
-- **No onboarding:** set `REQUIRE_ONBOARDING = false`, or delete `pages/welcome.vue`,
-  `layouts/onboarding.vue`, `composables/stores/useOnboardingStore.ts` and the onboarding block in
-  the guard.
-- **No signup:** delete `pages/auth/signup.vue` and its link in `pages/auth/login.vue`.
-- **No admin area:** delete `pages/dashboard/admin/`, the Admin group in `layouts/dashboard.vue` and
-  the "Manage Users" entry in `components/dashboard/UserMenu.vue`.
+	async search(query: SearchTypes.EngineQuery): Promise<SearchTypes.EngineResponse> {
+		const data = await this.http.json<any>(`https://my-engine.example/api?q=${encodeURIComponent(query.query)}&page=${query.page}`, {
+			headers: { Authorization: `Bearer ${this.settings.api_key}` },
+		});
+		return { results: data.items.map((item: any) => ({ url: item.link, title: item.title, content: item.snippet })) };
+	}
+}
+```
 
-Placeholders to replace: `ProjectName` (texts, SEO titles, logo), `<PREFIX>` (session cookie name
-in `composables/useAppCookies.ts`), and the links in `components/layout/Footer.vue`.
+`this.http` already applies the engine's timeout and proxies, sets browser-like headers and maps
+403/429 to `EngineError("blocked")`, which suspends the engine with backoff.
 
-## Scripts
+**Proxy type** — subclass `ProxyTransport` (`fetch(url, request)`) and register it in
+[`server/lib/proxy/transports/index.ts`](server/lib/proxy/transports/index.ts).
 
-- `bun run dev` — dev server on port 3000 (frontend + API)
-- `bun run build` — production build (single `.output/`)
-- `bun run start` — run the built server
-- `bun run api-client:generate` — regenerate the typed API client
-- `bun run db:generate` / `db:migrate` / `db:push` — Drizzle migrations
-- `bun run typecheck` — `nuxt typecheck` + `tsc` (includes `server/`)
-- `bun test` — run tests
+**Instant answer** — subclass `InstantAnswerProvider` (`answer(query, ctx)` returns an answer or
+`null`) and register it in [`server/lib/instant-answers/index.ts`](server/lib/instant-answers/index.ts).
+Answers with an unknown `type` fall back to a text card; add a widget in
+`app/components/search/instant/` for a custom UI.
 
-## Structure
+## Development
 
-See the LeiCraftMC style guide:
+```bash
+bun run dev                    # http://localhost:12418 (frontend + API)
+bun test                       # backend, engine parser, proxy, SearXNG and admin tests
+bun run typecheck              # nuxt typecheck + tsc for server/ and tests/
+bun run check:ci               # Biome
+bun run api-client:generate    # regenerate app/api-client after changing a route
+bun run db:generate            # new migration after changing server/lib/db/schema.ts
+bun scripts/engine-smoke-test.ts [query] [engine…]   # hit the real engines
+```
 
-- [docs/01-project-structure.md](https://github.com/LeiCraftMC/Style-Guides/blob/main/docs/01-project-structure.md) — the full-stack Nuxt shape
-- [docs/04-backend-hono.md](https://github.com/LeiCraftMC/Style-Guides/blob/main/docs/04-backend-hono.md) — Mounting Hono in Nitro
-- [docs/06-frontend-nuxt.md](https://github.com/LeiCraftMC/Style-Guides/blob/main/docs/06-frontend-nuxt.md)
+Layout (full-stack shape of the style guide):
+
+```
+server/
+  lib/api/            Hono app: versions/v1/routes/** (REST), searxng/ (compat API), utils/
+  lib/search/         engines/, aggregator, service (pipeline), health, cache, autocomplete
+  lib/proxy/          ProxyManager, transports/, socks/ (SOCKS5 client + local CONNECT bridge)
+  lib/bangs/          bang index, DuckDuckGo dataset, custom bangs
+  lib/instant-answers/  providers/, math/ (safe expression parser, units)
+  lib/ai/             OpenAI compatible client (streaming)
+  lib/settings/       instance settings, search defaults + user overrides, AI config
+  runtime/bun-entry.ts  production server entry (passes the client IP to Nitro)
+app/                  Nuxt 4 frontend (search UI, dashboard, admin)
+tests/                bun:test suites
+```
+
+Known quirks:
+
+- `@unhead/vue` 3.4.1 ships a broken `.d.ts`; `package.json` pins 3.4.0 via `overrides`.
+- `bun run typecheck` does not type-check `<template>` code in `.vue` files under Bun.
+- On Windows the Nuxt CLI dev worker is flaky under Bun; if `bun run dev` misbehaves, verify with a
+  production build.
+- Scrapers break when engines change their markup — `scripts/engine-smoke-test.ts` shows which.
+  DuckDuckGo rate-limits aggressively per IP; give it a proxy if you rely on it.
 
 ## License
 
-AGPL-3.0
+[AGPL-3.0](LICENSE)

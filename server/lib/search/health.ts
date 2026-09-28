@@ -63,7 +63,9 @@ export class EngineHealth {
 
 		if (suspendFor) {
 			state.suspendedUntil = now + suspendFor;
-			Logger.warn(`Engine '${slug}' suspended for ${Math.round(suspendFor / 1000)}s (${state.lastError})`);
+			Logger.warn(
+				`Engine '${slug}' suspended for ${Math.round(suspendFor / 1000)}s (${state.lastError})`,
+			);
 		}
 	}
 

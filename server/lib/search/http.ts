@@ -105,7 +105,10 @@ export class EngineHttp {
 		}
 	}
 
-	async html(url: string, init?: EngineHttp.RequestInit): Promise<{ root: HTMLElement; raw: string }> {
+	async html(
+		url: string,
+		init?: EngineHttp.RequestInit,
+	): Promise<{ root: HTMLElement; raw: string }> {
 		const raw = await this.text(url, init);
 		return { root: parseHTML(raw), raw };
 	}

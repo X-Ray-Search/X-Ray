@@ -137,7 +137,9 @@ export class DuckDuckGoVideosEngine extends DuckDuckGoJSONEngine {
 	protected readonly pageSize = 60;
 
 	protected filters(query: SearchTypes.EngineQuery) {
-		const time = query.timeRange ? `publishedAfter:${DuckDuckGoCommon.timeRange(query.timeRange)}` : "";
+		const time = query.timeRange
+			? `publishedAfter:${DuckDuckGoCommon.timeRange(query.timeRange)}`
+			: "";
 		return { f: `${time},,,` };
 	}
 
@@ -151,8 +153,9 @@ export class DuckDuckGoVideosEngine extends DuckDuckGoJSONEngine {
 			content: SearchUtils.cleanText(item.description),
 			template: "video",
 			publishedAt: Number.isNaN(published) ? undefined : published,
-			thumbnail:
-				SearchUtils.safeURL(item.images?.large ?? item.images?.medium ?? item.images?.small)?.toString(),
+			thumbnail: SearchUtils.safeURL(
+				item.images?.large ?? item.images?.medium ?? item.images?.small,
+			)?.toString(),
 			duration: SearchUtils.cleanText(item.duration) || undefined,
 			author: SearchUtils.cleanText(item.uploader) || undefined,
 			source: SearchUtils.cleanText(item.publisher) || SearchUtils.hostname(url),

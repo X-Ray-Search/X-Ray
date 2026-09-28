@@ -19,7 +19,8 @@ export const router = new Hono().basePath("/proxy");
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const MAX_REDIRECTS = 3;
-const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0";
+const USER_AGENT =
+	"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0";
 const faviconCache = new TTLCache<{ body: Uint8Array; type: string } | null>(4000, 24 * 3_600_000);
 
 const SECURITY_HEADERS = {
@@ -30,13 +31,18 @@ const SECURITY_HEADERS = {
 };
 
 /** Fetch an image, re-checking every redirect hop against the SSRF guard. */
-async function fetchImage(url: string): Promise<{ body: Uint8Array; type: string } | { status: number }> {
+async function fetchImage(
+	url: string,
+): Promise<{ body: Uint8Array; type: string } | { status: number }> {
 	let current = url;
 	for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
 		if (!(await NetUtils.isPublicURL(current))) return { status: 403 };
 
 		const res = await ProxyManager.fetch(current, {
-			headers: { "User-Agent": USER_AGENT, Accept: "image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8" },
+			headers: {
+				"User-Agent": USER_AGENT,
+				Accept: "image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8",
+			},
 			redirect: "manual",
 			signal: AbortSignal.timeout(10_000),
 		});
@@ -69,10 +75,14 @@ router.get(
 
 	describeRoute({
 		summary: "Proxied image",
-		description: "Serves a result image through X-Ray. Only URLs signed by X-Ray (`sig`) are accepted.",
+		description:
+			"Serves a result image through X-Ray. Only URLs signed by X-Ray (`sig`) are accepted.",
 		tags: [DOCS_TAGS.MEDIA_PROXY],
 		security: [],
-		responses: { 200: { description: "The image" }, 403: { description: "Invalid signature or blocked URL" } },
+		responses: {
+			200: { description: "The image" },
+			403: { description: "Invalid signature or blocked URL" },
+		},
 	}),
 
 	zValidator("query", z.object({ url: z.string().min(1).max(4096), sig: z.string().length(32) })),

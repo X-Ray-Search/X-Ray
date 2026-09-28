@@ -39,9 +39,25 @@ export namespace Units {
 	export const ALL: Unit[] = [
 		// length (m)
 		u("length", "m", "meters", 1, ["meter", "meters", "metre", "metres"]),
-		u("length", "km", "kilometers", 1000, ["kilometer", "kilometers", "kilometre", "kilometres", "kms"]),
-		u("length", "cm", "centimeters", 0.01, ["centimeter", "centimeters", "centimetre", "centimetres"]),
-		u("length", "mm", "millimeters", 0.001, ["millimeter", "millimeters", "millimetre", "millimetres"]),
+		u("length", "km", "kilometers", 1000, [
+			"kilometer",
+			"kilometers",
+			"kilometre",
+			"kilometres",
+			"kms",
+		]),
+		u("length", "cm", "centimeters", 0.01, [
+			"centimeter",
+			"centimeters",
+			"centimetre",
+			"centimetres",
+		]),
+		u("length", "mm", "millimeters", 0.001, [
+			"millimeter",
+			"millimeters",
+			"millimetre",
+			"millimetres",
+		]),
 		u("length", "µm", "micrometers", 1e-6, ["um", "micrometer", "micrometers", "micron", "microns"]),
 		u("length", "nm", "nanometers", 1e-9, ["nanometer", "nanometers"]),
 		u("length", "mi", "miles", 1609.344, ["mile", "miles"]),
@@ -49,8 +65,16 @@ export namespace Units {
 		u("length", "ft", "feet", 0.3048, ["foot", "feet", "'"]),
 		u("length", "in", "inches", 0.0254, ["inch", "inches", '"']),
 		u("length", "nmi", "nautical miles", 1852, ["nautical mile", "nautical miles"]),
-		u("length", "au", "astronomical units", 149_597_870_700, ["astronomical unit", "astronomical units"]),
-		u("length", "ly", "light years", 9.4607304725808e15, ["light year", "light years", "lightyear", "lightyears"]),
+		u("length", "au", "astronomical units", 149_597_870_700, [
+			"astronomical unit",
+			"astronomical units",
+		]),
+		u("length", "ly", "light years", 9.4607304725808e15, [
+			"light year",
+			"light years",
+			"lightyear",
+			"lightyears",
+		]),
 		// mass (kg)
 		u("mass", "kg", "kilograms", 1, ["kilogram", "kilograms", "kilo", "kilos", "kgs"]),
 		u("mass", "g", "grams", 0.001, ["gram", "grams", "gr"]),
@@ -62,17 +86,47 @@ export namespace Units {
 		u("mass", "st", "stone", 6.35029318, ["stone", "stones"]),
 		u("mass", "ton", "short tons", 907.18474, ["tons", "short ton", "short tons"]),
 		// temperature (K)
-		u("temperature", "°C", "degrees Celsius", 1, ["c", "°c", "celsius", "degc", "degrees celsius"], 273.15),
-		u("temperature", "°F", "degrees Fahrenheit", 5 / 9, ["f", "°f", "fahrenheit", "degf", "degrees fahrenheit"], 459.67),
+		u(
+			"temperature",
+			"°C",
+			"degrees Celsius",
+			1,
+			["c", "°c", "celsius", "degc", "degrees celsius"],
+			273.15,
+		),
+		u(
+			"temperature",
+			"°F",
+			"degrees Fahrenheit",
+			5 / 9,
+			["f", "°f", "fahrenheit", "degf", "degrees fahrenheit"],
+			459.67,
+		),
 		u("temperature", "K", "kelvin", 1, ["k", "kelvin", "kelvins"], 0),
 		// volume (l)
 		u("volume", "l", "liters", 1, ["liter", "liters", "litre", "litres", "ltr"]),
-		u("volume", "ml", "milliliters", 0.001, ["milliliter", "milliliters", "millilitre", "millilitres"]),
+		u("volume", "ml", "milliliters", 0.001, [
+			"milliliter",
+			"milliliters",
+			"millilitre",
+			"millilitres",
+		]),
 		u("volume", "cl", "centiliters", 0.01, ["centiliter", "centiliters"]),
 		u("volume", "dl", "deciliters", 0.1, ["deciliter", "deciliters"]),
-		u("volume", "m³", "cubic meters", 1000, ["m3", "cubic meter", "cubic meters", "cubic metre", "cubic metres"]),
+		u("volume", "m³", "cubic meters", 1000, [
+			"m3",
+			"cubic meter",
+			"cubic meters",
+			"cubic metre",
+			"cubic metres",
+		]),
 		u("volume", "gal", "US gallons", 3.785411784, ["gallon", "gallons", "us gallon", "us gallons"]),
-		u("volume", "imp gal", "imperial gallons", 4.54609, ["imperial gallon", "imperial gallons", "uk gallon", "uk gallons"]),
+		u("volume", "imp gal", "imperial gallons", 4.54609, [
+			"imperial gallon",
+			"imperial gallons",
+			"uk gallon",
+			"uk gallons",
+		]),
 		u("volume", "qt", "US quarts", 0.946352946, ["quart", "quarts"]),
 		u("volume", "pt", "US pints", 0.473176473, ["pint", "pints"]),
 		u("volume", "cup", "US cups", 0.2365882365, ["cups"]),
@@ -80,14 +134,32 @@ export namespace Units {
 		u("volume", "tbsp", "tablespoons", 0.01478676478125, ["tablespoon", "tablespoons"]),
 		u("volume", "tsp", "teaspoons", 0.00492892159375, ["teaspoon", "teaspoons"]),
 		// area (m²)
-		u("area", "m²", "square meters", 1, ["m2", "sqm", "square meter", "square meters", "square metre", "square metres"]),
+		u("area", "m²", "square meters", 1, [
+			"m2",
+			"sqm",
+			"square meter",
+			"square meters",
+			"square metre",
+			"square metres",
+		]),
 		u("area", "km²", "square kilometers", 1e6, ["km2", "square kilometer", "square kilometers"]),
 		u("area", "cm²", "square centimeters", 1e-4, ["cm2", "square centimeter", "square centimeters"]),
 		u("area", "ha", "hectares", 10_000, ["hectare", "hectares"]),
 		u("area", "ac", "acres", 4046.8564224, ["acre", "acres"]),
-		u("area", "ft²", "square feet", 0.09290304, ["ft2", "sqft", "sq ft", "square foot", "square feet"]),
+		u("area", "ft²", "square feet", 0.09290304, [
+			"ft2",
+			"sqft",
+			"sq ft",
+			"square foot",
+			"square feet",
+		]),
 		u("area", "in²", "square inches", 0.00064516, ["in2", "sq in", "square inch", "square inches"]),
-		u("area", "mi²", "square miles", 2_589_988.110336, ["mi2", "sq mi", "square mile", "square miles"]),
+		u("area", "mi²", "square miles", 2_589_988.110336, [
+			"mi2",
+			"sq mi",
+			"square mile",
+			"square miles",
+		]),
 		// speed (m/s)
 		u("speed", "m/s", "meters per second", 1, ["mps", "meters per second"]),
 		u("speed", "km/h", "kilometers per hour", 1 / 3.6, ["kmh", "kph", "kmph", "kilometers per hour"]),
@@ -159,7 +231,11 @@ export namespace Units {
 	}
 
 	export function find(name: string): Unit | undefined {
-		const key = name.toLowerCase().trim().replace(/\s+/g, " ").replace(/^(a|an|the)\s+/, "");
+		const key = name
+			.toLowerCase()
+			.trim()
+			.replace(/\s+/g, " ")
+			.replace(/^(a|an|the)\s+/, "");
 		return byAlias.get(key) ?? byAlias.get(key.replace(/\.$/, ""));
 	}
 

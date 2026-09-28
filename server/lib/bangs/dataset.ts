@@ -82,7 +82,12 @@ export class BangDataset {
 				}
 			});
 
-			const status = { updated_at: Date.now(), count: rows.length, last_error: null, source_url: this.SOURCE_URL };
+			const status = {
+				updated_at: Date.now(),
+				count: rows.length,
+				last_error: null,
+				source_url: this.SOURCE_URL,
+			};
 			await RuntimeMetadata.set("ddg_bangs_status", status);
 			await BangService.load();
 			Logger.info(`DuckDuckGo bang dataset updated (${rows.length} bangs).`);

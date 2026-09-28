@@ -66,7 +66,7 @@ export namespace ProxyTransport {
 	export interface Request {
 		method?: string;
 		headers?: Record<string, string>;
-		body?: string | Uint8Array;
+		body?: string | Uint8Array<ArrayBuffer>;
 		redirect?: "follow" | "manual" | "error";
 		signal?: AbortSignal;
 	}

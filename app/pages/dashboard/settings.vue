@@ -6,8 +6,8 @@ definePageMeta({
 });
 
 useSeoMeta({
-	title: "Settings | ProjectName",
-	description: "Manage your account settings",
+	title: "Settings | X-Ray",
+	description: "Manage your account",
 });
 
 const links = [

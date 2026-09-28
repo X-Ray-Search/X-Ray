@@ -7,13 +7,15 @@ defineProps<{
 </script>
 
 <template>
-	<div class="main-bg-color flex min-h-screen flex-col text-slate-100">
-		<LayoutHeader />
+	<UApp>
+		<div class="main-bg-color flex min-h-dvh flex-col text-slate-100">
+			<LayoutHeader />
 
-		<UMain class="flex-1">
-			<UError :error="error" />
-		</UMain>
+			<UMain class="flex-1">
+				<UError :error="error" :clear="{ label: 'Back to search', to: '/' }" />
+			</UMain>
 
-		<LayoutFooter />
-	</div>
+			<LayoutFooter />
+		</div>
+	</UApp>
 </template>

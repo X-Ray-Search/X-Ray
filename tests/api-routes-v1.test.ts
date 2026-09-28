@@ -1,16 +1,17 @@
-import { afterAll, describe, expect, test, beforeAll } from "bun:test";
-import { seedUser, seedSession, type SeededUser, type SeededSession } from "./helpers/seed";
-import { API } from "../server/lib/api";
-import { DB } from "../server/lib/db";
-import { AuthHandler, AuthUtils, SessionHandler } from "../server/lib/api/utils/authHandler";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { randomUUID } from "crypto";
 import { and, desc, eq } from "drizzle-orm";
-import { AuthModel } from "../server/lib/api/versions/v1/routes/auth/model";
-import { makeAPIRequest } from "./helpers/api";
+import { API } from "../server/lib/api";
+import { AuthHandler, AuthUtils, SessionHandler } from "../server/lib/api/utils/authHandler";
 import { AccountModel } from "../server/lib/api/versions/v1/routes/account/model";
-import { hashResetToken } from "../server/lib/api/versions/v1/routes/auth/reset-password";
-import { AppConstants } from "../server/lib/utils/constants";
 import { AccountPreferencesModel } from "../server/lib/api/versions/v1/routes/account/preferences/model";
+import { AuthModel } from "../server/lib/api/versions/v1/routes/auth/model";
+import { hashResetToken } from "../server/lib/api/versions/v1/routes/auth/reset-password";
+import { DB } from "../server/lib/db";
+import { SettingsHandler } from "../server/lib/settings";
+import { AppConstants } from "../server/lib/utils/constants";
+import { makeAPIRequest } from "./helpers/api";
+import { type SeededSession, type SeededUser, seedSession, seedUser } from "./helpers/seed";
 
 let testUser: SeededUser;
 let testAdmin: SeededUser;
@@ -594,313 +595,130 @@ describe("Account API key routes", async () => {
 });
 
 describe("Account Preferences Routes", async () => {
-
-    let preferencesTestUser: SeededUser;
-    let session_token: string;
-
-    beforeAll(async () => {
-        preferencesTestUser = await seedUser("user", { username: "preferencesuser" }, "PrefsP@ss1");
-        session_token = await seedSession(preferencesTestUser.id).then(s => s.token);
-    });
-
-    afterAll(async () => {
-        SessionHandler.inValidateAllSessionsForUser(preferencesTestUser.id);
-
-        DB.instance().delete(DB.Tables.userPreferences).where(
-            eq(DB.Tables.userPreferences.user_id, preferencesTestUser.id)
-        ).run();
-
-        DB.instance().delete(DB.Tables.users).where(
-            eq(DB.Tables.users.id, preferencesTestUser.id)
-        ).run();
-    });
-
-    test("GET /v1/account/preferences/onboarding returns empty defaults when nothing is saved yet", async () => {
-
-        const data = await makeAPIRequest("/v1/account/preferences/onboarding", {
-            authToken: session_token,
-            expectedBodySchema: AccountPreferencesModel.Onboarding.Response
-        });
-
-        expect(data.completed).toEqual(false);
-
-        // No row should exist yet - this is a computed default, not a persisted one.
-        const dbresult = DB.instance().select().from(DB.Tables.userPreferences).where(
-            eq(DB.Tables.userPreferences.user_id, preferencesTestUser.id)
-        ).all();
-        expect(dbresult.length).toBe(0);
-    });
-
-    test("GET /v1/account/preferences/onboarding without auth fails", async () => {
-        await makeAPIRequest("/v1/account/preferences/onboarding", {}, 401);
-    });
-
-    test("PUT /v1/account/preferences/onboarding saves onboarding state", async () => {
-
-        await makeAPIRequest("/v1/account/preferences/onboarding", {
-            method: "PUT",
-            authToken: session_token,
-            body: {
-                completed: true
-            }
-        });
-
-        const data = await makeAPIRequest("/v1/account/preferences/onboarding", {
-            authToken: session_token,
-            expectedBodySchema: AccountPreferencesModel.Onboarding.Response
-        });
-
-        expect(data.completed).toEqual(true);
-
-        const dbresult = DB.instance().select().from(DB.Tables.userPreferences).where(
-            eq(DB.Tables.userPreferences.user_id, preferencesTestUser.id)
-        ).all();
-        expect(dbresult.length).toBe(1);
-        expect(dbresult[0]?.key).toBe("onboarding");
-    });
-
-    test("PUT /v1/account/preferences/onboarding overwrites the previous state", async () => {
-
-        await makeAPIRequest("/v1/account/preferences/onboarding", {
-            method: "PUT",
-            authToken: session_token,
-            body: {
-                completed: false
-            }
-        });
-        const data = await makeAPIRequest("/v1/account/preferences/onboarding", {
-            authToken: session_token,
-            expectedBodySchema: AccountPreferencesModel.Onboarding.Response
-        });
-
-        // Replace semantics, not merge: the earlier "addresses" rule is gone.
-        expect(data.completed).toEqual(false);
-
-        const dbresult = DB.instance().select().from(DB.Tables.userPreferences).where(
-            eq(DB.Tables.userPreferences.user_id, preferencesTestUser.id)
-        ).all();
-        expect(dbresult.length).toBe(1);
-    });
-
-    test("PUT /v1/account/preferences/onboarding concurrently still results in exactly one stored row", async () => {
-
-        await Promise.all([
-            makeAPIRequest("/v1/account/preferences/onboarding", {
-                method: "PUT",
-                authToken: session_token,
-                body: { completed: true }
-            }),
-            makeAPIRequest("/v1/account/preferences/onboarding", {
-                method: "PUT",
-                authToken: session_token,
-                body: { completed: false }
-            })
-        ]);
-
-        const dbresult = DB.instance().select().from(DB.Tables.userPreferences).where(
-            eq(DB.Tables.userPreferences.user_id, preferencesTestUser.id)
-        ).all();
-        expect(dbresult.length).toBe(1);
-    });
-
-    test("PUT /v1/account/preferences/onboarding with invalid decision fails", async () => {
-
-        await makeAPIRequest("/v1/account/preferences/onboarding", {
-            method: "PUT",
-            authToken: session_token,
-            body: {
-                completed: "not-a-boolean"
-            }
-        }, 400);
-    });
-
-    test("PUT /v1/account/preferences/onboarding without auth fails", async () => {
-
-        await makeAPIRequest("/v1/account/preferences/onboarding", {
-            method: "PUT",
-            body: { completed: true }
-        }, 401);
-    });
-
-    test("Preferences are isolated per user", async () => {
-
-        const otherUser = await seedUser("user", { username: "preferencesotheruser" }, "OtherP@ss1");
-        const otherSession = await seedSession(otherUser.id).then(s => s.token);
-
-        const data = await makeAPIRequest("/v1/account/preferences/onboarding", {
-            authToken: otherSession,
-            expectedBodySchema: AccountPreferencesModel.Onboarding.Response
-        });
-
-        // Should NOT see preferencesTestUser's saved rules.
-        expect(data.completed).toEqual(false);
-
-        SessionHandler.inValidateAllSessionsForUser(otherUser.id);
-        DB.instance().delete(DB.Tables.users).where(eq(DB.Tables.users.id, otherUser.id)).run();
-    });
-
-    test("DELETE /v1/account also removes stored preferences", async () => {
-
-        const deletableUser = await seedUser("user", { username: "preferencesdeletableuser" }, "DeleteP@ss1");
-        const deletableSession = await seedSession(deletableUser.id).then(s => s.token);
-
-        await makeAPIRequest("/v1/account/preferences/onboarding", {
-            method: "PUT",
-            authToken: deletableSession,
-            body: { completed: true }
-        });
-
-        const beforeDelete = DB.instance().select().from(DB.Tables.userPreferences).where(
-            eq(DB.Tables.userPreferences.user_id, deletableUser.id)
-        ).all();
-        expect(beforeDelete.length).toBe(1);
-
-        await makeAPIRequest("/v1/account", {
-            method: "DELETE",
-            authToken: deletableSession
-        });
-
-        const afterDelete = DB.instance().select().from(DB.Tables.userPreferences).where(
-            eq(DB.Tables.userPreferences.user_id, deletableUser.id)
-        ).all();
-        expect(afterDelete.length).toBe(0);
-    });
-
-    test("GET /v1/account/preferences/onboarding defaults to completed=false with no stored row", async () => {
-
-        const onboardingUser = await seedUser("user", { username: "onboardinguser" }, "OnboardingP@ss1");
-        const onboardingSession = await seedSession(onboardingUser.id).then(s => s.token);
-
-        const data = await makeAPIRequest("/v1/account/preferences/onboarding", {
-            authToken: onboardingSession,
-            expectedBodySchema: AccountPreferencesModel.Onboarding.Response
-        });
-
-        expect(data.completed).toBe(false);
-
-        // Default is computed, not persisted.
-        const dbresult = DB.instance().select().from(DB.Tables.userPreferences).where(
-            eq(DB.Tables.userPreferences.user_id, onboardingUser.id)
-        ).all();
-        expect(dbresult.length).toBe(0);
-
-        SessionHandler.inValidateAllSessionsForUser(onboardingUser.id);
-        DB.instance().delete(DB.Tables.users).where(eq(DB.Tables.users.id, onboardingUser.id)).run();
-    });
-
-    test("PUT /v1/account/preferences/onboarding persists completed=true and reads it back", async () => {
-
-        await makeAPIRequest("/v1/account/preferences/onboarding", {
-            method: "PUT",
-            authToken: session_token,
-            body: { completed: true }
-        });
-
-        const data = await makeAPIRequest("/v1/account/preferences/onboarding", {
-            authToken: session_token,
-            expectedBodySchema: AccountPreferencesModel.Onboarding.Response
-        });
-
-        expect(data.completed).toBe(true);
-
-        const dbresult = DB.instance().select().from(DB.Tables.userPreferences).where(
-            and(
-                eq(DB.Tables.userPreferences.user_id, preferencesTestUser.id),
-                eq(DB.Tables.userPreferences.key, "onboarding")
-            )
-        ).all();
-        expect(dbresult.length).toBe(1);
-    });
-
-    test("GET /v1/account/preferences/onboarding without auth fails", async () => {
-        await makeAPIRequest("/v1/account/preferences/onboarding", {}, 401);
-    });
-
-    test("GET /v1/account/preferences returns every preference with defaults when nothing is saved yet", async () => {
-
-        const allPrefsUser = await seedUser("user", { username: "allprefsdefaultuser" }, "AllP@ss1");
-        const allPrefsSession = await seedSession(allPrefsUser.id).then(s => s.token);
-
-        const data = await makeAPIRequest("/v1/account/preferences", {
-            authToken: allPrefsSession,
-            expectedBodySchema: AccountPreferencesModel.GetAll.Response
-        });
-
-        expect(Object.keys(data).sort()).toEqual(Object.keys(AccountPreferencesModel.GetAll.Response.shape).sort());
-        expect(data).toMatchObject({
-            "onboarding": { completed: false }
-        });
-
-        // Defaults are computed, not persisted.
-        const dbresult = DB.instance().select().from(DB.Tables.userPreferences).where(
-            eq(DB.Tables.userPreferences.user_id, allPrefsUser.id)
-        ).all();
-        expect(dbresult.length).toBe(0);
-
-        SessionHandler.inValidateAllSessionsForUser(allPrefsUser.id);
-        DB.instance().delete(DB.Tables.users).where(eq(DB.Tables.users.id, allPrefsUser.id)).run();
-    });
-
-    test("GET /v1/account/preferences returns saved values matching the per-preference routes", async () => {
-
-        const allPrefsUser = await seedUser("user", { username: "allprefssaveduser" }, "AllP@ss1");
-        const allPrefsSession = await seedSession(allPrefsUser.id).then(s => s.token);
-
-        await makeAPIRequest("/v1/account/preferences/onboarding", {
-            method: "PUT",
-            authToken: allPrefsSession,
-            body: { completed: false }
-        });
-
-        const data = await makeAPIRequest("/v1/account/preferences", {
-            authToken: allPrefsSession,
-            expectedBodySchema: AccountPreferencesModel.GetAll.Response
-        });
-
-        expect(data["onboarding"].completed).toBe(false);
-
-        for (const key of Object.keys(data)) {
-            const single = await makeAPIRequest<unknown>(`/v1/account/preferences/${key}`, {
-                authToken: allPrefsSession
-            });
-            expect(single).toEqual(data[key as keyof typeof data]);
-        }
-
-        SessionHandler.inValidateAllSessionsForUser(allPrefsUser.id);
-        DB.instance().delete(DB.Tables.userPreferences).where(eq(DB.Tables.userPreferences.user_id, allPrefsUser.id)).run();
-        DB.instance().delete(DB.Tables.users).where(eq(DB.Tables.users.id, allPrefsUser.id)).run();
-    });
-
-    test("GET /v1/account/preferences ignores stored keys that are no longer known preferences", async () => {
-
-        const allPrefsUser = await seedUser("user", { username: "allprefslegacyuser" }, "AllP@ss1");
-        const allPrefsSession = await seedSession(allPrefsUser.id).then(s => s.token);
-
-        DB.instance().insert(DB.Tables.userPreferences).values({
-            user_id: allPrefsUser.id,
-            key: "legacy-preference",
-            data: { some: "value" }
-        }).run();
-
-        // No expectedBodySchema: parsing would strip unknown keys and hide a leak.
-        const data = await makeAPIRequest<Record<string, unknown>>("/v1/account/preferences", {
-            authToken: allPrefsSession
-        });
-
-        expect(Object.keys(data)).not.toContain("legacy-preference");
-        expect(Object.keys(data).sort()).toEqual(Object.keys(AccountPreferencesModel.GetAll.Response.shape).sort());
-
-        SessionHandler.inValidateAllSessionsForUser(allPrefsUser.id);
-        DB.instance().delete(DB.Tables.userPreferences).where(eq(DB.Tables.userPreferences.user_id, allPrefsUser.id)).run();
-        DB.instance().delete(DB.Tables.users).where(eq(DB.Tables.users.id, allPrefsUser.id)).run();
-    });
-
-    test("GET /v1/account/preferences without auth fails", async () => {
-        await makeAPIRequest("/v1/account/preferences", {}, 401);
-    });
-
+	let preferencesUser: SeededUser;
+	let sessionToken: string;
+
+	beforeAll(async () => {
+		preferencesUser = await seedUser("user", { username: "preferencesuser" }, "PrefsP@ss1");
+		sessionToken = await seedSession(preferencesUser.id).then((s) => s.token);
+	});
+
+	test("GET /v1/account/preferences/search returns instance defaults without overrides", async () => {
+		const data = await makeAPIRequest("/v1/account/preferences/search", {
+			authToken: sessionToken,
+			expectedBodySchema: AccountPreferencesModel.Search.Response,
+		});
+
+		expect(data.overrides).toEqual({});
+		expect(data.effective).toEqual(data.defaults);
+
+		// Nothing is persisted for computed defaults.
+		const rows = DB.instance()
+			.select()
+			.from(DB.Tables.userPreferences)
+			.where(eq(DB.Tables.userPreferences.user_id, preferencesUser.id))
+			.all();
+		expect(rows.length).toBe(0);
+	});
+
+	test("PUT /v1/account/preferences/search stores overrides and merges them", async () => {
+		const data = await makeAPIRequest("/v1/account/preferences/search", {
+			method: "PUT",
+			authToken: sessionToken,
+			body: { safesearch: 0, open_in_new_tab: true, disabled_engines: ["bing"] },
+			expectedBodySchema: AccountPreferencesModel.Search.Response,
+		});
+
+		expect(data.overrides).toEqual({
+			safesearch: 0,
+			open_in_new_tab: true,
+			disabled_engines: ["bing"],
+		});
+		expect(data.effective.safesearch).toBe(0);
+		expect(data.effective.open_in_new_tab).toBe(true);
+		expect(data.effective.language).toBe(data.defaults.language);
+	});
+
+	test("PUT /v1/account/preferences/search replaces (not merges) previous overrides", async () => {
+		const data = await makeAPIRequest("/v1/account/preferences/search", {
+			method: "PUT",
+			authToken: sessionToken,
+			body: { units: "imperial" },
+			expectedBodySchema: AccountPreferencesModel.Search.Response,
+		});
+		expect(data.overrides).toEqual({ units: "imperial" });
+		expect(data.effective.safesearch).toBe(data.defaults.safesearch);
+	});
+
+	test("Instance default changes flow through to users without an override", async () => {
+		await SettingsHandler.updateSearchDefaults({ autocomplete: "brave" });
+		const data = await makeAPIRequest("/v1/account/preferences/search", {
+			authToken: sessionToken,
+			expectedBodySchema: AccountPreferencesModel.Search.Response,
+		});
+		expect(data.effective.autocomplete).toBe("brave");
+		expect(data.effective.units).toBe("imperial");
+		await SettingsHandler.updateSearchDefaults({ autocomplete: "duckduckgo" });
+	});
+
+	test("PUT /v1/account/preferences/search rejects invalid values", async () => {
+		await makeAPIRequest(
+			"/v1/account/preferences/search",
+			{ method: "PUT", authToken: sessionToken, body: { safesearch: 5 } },
+			400,
+		);
+		await makeAPIRequest(
+			"/v1/account/preferences/search",
+			{ method: "PUT", authToken: sessionToken, body: { autocomplete: "altavista" } },
+			400,
+		);
+	});
+
+	test("GET /v1/account/preferences returns all stored preference keys", async () => {
+		const data = await makeAPIRequest("/v1/account/preferences", {
+			authToken: sessionToken,
+			expectedBodySchema: AccountPreferencesModel.GetAll.Response,
+		});
+		expect(Object.keys(data).sort()).toEqual(
+			Object.keys(AccountPreferencesModel.GetAll.Response.shape).sort(),
+		);
+		expect(data.search).toEqual({ units: "imperial" });
+	});
+
+	test("Preferences require a session", async () => {
+		await makeAPIRequest("/v1/account/preferences/search", {}, 401);
+		await makeAPIRequest("/v1/account/preferences/search", { method: "PUT", body: {} }, 401);
+	});
+
+	test("Preferences are isolated per user", async () => {
+		const other = await seedUser("user", { username: "preferencesother" }, "OtherP@ss1");
+		const otherSession = await seedSession(other.id).then((s) => s.token);
+		const data = await makeAPIRequest("/v1/account/preferences/search", {
+			authToken: otherSession,
+			expectedBodySchema: AccountPreferencesModel.Search.Response,
+		});
+		expect(data.overrides).toEqual({});
+	});
+
+	test("DELETE /v1/account also removes stored preferences", async () => {
+		const deletable = await seedUser("user", { username: "preferencesdeletable" }, "DeleteP@ss1");
+		const deletableSession = await seedSession(deletable.id).then((s) => s.token);
+
+		await makeAPIRequest("/v1/account/preferences/search", {
+			method: "PUT",
+			authToken: deletableSession,
+			body: { safesearch: 2 },
+		});
+		await makeAPIRequest("/v1/account", { method: "DELETE", authToken: deletableSession });
+
+		const rows = DB.instance()
+			.select()
+			.from(DB.Tables.userPreferences)
+			.where(eq(DB.Tables.userPreferences.user_id, deletable.id))
+			.all();
+		expect(rows.length).toBe(0);
+	});
 });
-
 
 describe("Docs Routes", async () => {
 	test("GET /docs/v1/openapi returns API docs if enabled", async () => {

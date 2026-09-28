@@ -1,6 +1,6 @@
+import { z } from "zod";
 import { AppConstants } from "./constants";
 import { Logger } from "./logger";
-import { z } from "zod";
 
 interface ConfigSchemaSettings {
 	[key: string]: CS.ConfigItem<z.ZodType>;
@@ -107,7 +107,7 @@ export type ENVConfigLike = {
 export type ParsedConfig = ConfigLike<typeof ConfigHandler.schema.schema>;
 
 export class ConfigHandler {
-	// Public so ENVConfigLike / ParsedConfig can derive from it without @ts-ignore.
+	// Public so ENVConfigLike / ParsedConfig can derive from it without @ts-expect-error.
 	// Treat it as read-only.
 	static schema = new ConfigSchema({
 		LOG_LEVEL: CS.enum(["debug", "info", "warn", "error", "critical"]).default("info"),

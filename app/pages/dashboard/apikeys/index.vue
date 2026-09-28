@@ -7,7 +7,7 @@ definePageMeta({
 });
 
 useSeoMeta({
-	title: "API Keys | ProjectName",
+	title: "API Keys | X-Ray",
 	description: "Manage your API keys",
 });
 
@@ -71,6 +71,14 @@ async function onDeleteApiKey() {
 
 		<template #body>
 			<DashboardPageBody>
+				<UAlert
+					color="neutral"
+					variant="subtle"
+					icon="i-lucide-plug"
+					title="Use X-Ray from other tools"
+					description="API keys work with the X-Ray API (Authorization: Bearer <key>) and with the SearXNG compatible endpoint /api/searxng/search?q=…&format=json — e.g. as the web search backend of Open WebUI, Perplexica or LibreChat."
+				/>
+
 				<DashboardDataTable
 					:data="apiKeys.data"
 					:columns="columns"

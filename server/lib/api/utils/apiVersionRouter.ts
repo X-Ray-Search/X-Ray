@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import type { GenerateSpecOptions } from "hono-openapi";
 import { HonoBase } from "hono/hono-base";
+import type { GenerateSpecOptions } from "hono-openapi";
 import { Logger } from "../../utils/logger";
 
 export abstract class APIVersionRouter<

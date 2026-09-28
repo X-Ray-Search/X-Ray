@@ -1,13 +1,13 @@
 import { drizzle } from "drizzle-orm/bun-sqlite";
-import * as TableSchema from "./schema";
-import { type DrizzleDB } from "./utils";
-import { Logger } from "../utils/logger";
-import { ConfigHandler } from "../utils/config";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import { mkdir as fs_mkdir } from "fs/promises";
 import { dirname as path_dirname, join as path_join } from "path";
+import { ConfigHandler } from "../utils/config";
 import { AppConstants } from "../utils/constants";
 import { LCrypt } from "../utils/crypto/lcrypt";
+import { Logger } from "../utils/logger";
+import * as TableSchema from "./schema";
+import type { DrizzleDB } from "./utils";
 
 export class DB {
 	protected static db: DrizzleDB.BunSQLite;
@@ -21,7 +21,6 @@ export class DB {
 			Logger.info("Running database migrations...");
 
 			let migrationsFolder = "drizzle/migrations";
-			//@ts-ignore
 			if (Bun?.isStandaloneExecutable) {
 				migrationsFolder = path_join(import.meta.dir, migrationsFolder);
 			}

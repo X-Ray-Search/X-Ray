@@ -21,7 +21,10 @@ export class CalculatorProvider extends InstantAnswerProvider {
 
 		if (!expression || expression.length > 200 || !MathParser.looksLikeMath(expression)) return null;
 		// Dates and phone numbers look like subtraction.
-		if (/^\d{1,4}([-/.])\d{1,2}\1\d{1,4}$/.test(expression) || /^\+?\d+(-\d+){2,}$/.test(expression)) {
+		if (
+			/^\d{1,4}([-/.])\d{1,2}\1\d{1,4}$/.test(expression) ||
+			/^\+?\d+(-\d+){2,}$/.test(expression)
+		) {
 			return null;
 		}
 		// A lone signed number ("-5") is not a calculation.

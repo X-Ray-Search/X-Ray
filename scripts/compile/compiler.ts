@@ -10,12 +10,12 @@ export enum Platforms {
 	"linux-x64-baseline" = "bun-linux-x64-baseline",
 	"linux-arm64" = "bun-linux-arm64",
 
-    // "win-x64" = "bun-windows-x64-modern",
-    // "win-x64-baseline" = "bun-windows-x64-baseline",
+	// "win-x64" = "bun-windows-x64-modern",
+	// "win-x64-baseline" = "bun-windows-x64-baseline",
 
-    // "macos-x64" = "bun-darwin-x64-modern",
-    // "macos-x64-baseline" = "bun-darwin-x64-baseline",
-    // "macos-arm64" = "bun-darwin-arm64"
+	// "macos-x64" = "bun-darwin-x64-modern",
+	// "macos-x64-baseline" = "bun-darwin-x64-baseline",
+	// "macos-arm64" = "bun-darwin-arm64"
 }
 
 export type PlatformArg = keyof typeof Platforms | "auto";
@@ -76,7 +76,6 @@ export class Compiler {
 
 		this.command.env.APP_VERSION = this.version;
 
-
 		this.command.addArg("--asset ./drizzle/migrations");
 	}
 
@@ -85,7 +84,7 @@ export class Compiler {
 			console.log(`Building from sources. Version: ${this.version} Platform: ${this.platform}`);
 
 			const output = await Bun.$`${{ raw: this.command.getCommand() }}`.text();
-			
+
 			console.log(output);
 		} catch (err: any) {
 			console.log(`Compiling Failed:\n`, err);

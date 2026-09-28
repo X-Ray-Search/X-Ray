@@ -22,13 +22,12 @@ export namespace SearchTypes {
 	export const Template = z.enum(Templates);
 	export type Template = z.infer<typeof Template>;
 
-	export const CategoryInfo: Record<Category, { name: string; icon: string; template: Template }> =
-		{
-			general: { name: "General", icon: "i-lucide-search", template: "web" },
-			images: { name: "Images", icon: "i-lucide-image", template: "image" },
-			news: { name: "News", icon: "i-lucide-newspaper", template: "news" },
-			videos: { name: "Videos", icon: "i-lucide-play-circle", template: "video" },
-		};
+	export const CategoryInfo: Record<Category, { name: string; icon: string; template: Template }> = {
+		general: { name: "General", icon: "i-lucide-search", template: "web" },
+		images: { name: "Images", icon: "i-lucide-image", template: "image" },
+		news: { name: "News", icon: "i-lucide-newspaper", template: "news" },
+		videos: { name: "Videos", icon: "i-lucide-play-circle", template: "video" },
+	};
 
 	/** The normalized query every engine receives. */
 	export interface EngineQuery {

@@ -56,7 +56,8 @@ export class BraveEngine extends SearchEngine<z.infer<typeof Settings>> {
 			const url = SearchUtils.safeURL(link?.getAttribute("href"))?.toString();
 			if (!link || !url) continue;
 
-			const content = item.querySelector(".generic-snippet .content") ?? item.querySelector(".snippet-description");
+			const content =
+				item.querySelector(".generic-snippet .content") ?? item.querySelector(".snippet-description");
 			const age = content?.querySelector(".t-secondary");
 			const publishedAt = SearchUtils.parseRelativeTime(age?.text);
 			age?.remove();

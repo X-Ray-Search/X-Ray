@@ -14,7 +14,9 @@ router.get(
 	APIRouteSpec.authenticated({
 		summary: "DuckDuckGo bang dataset status",
 		tags: [DOCS_TAGS.ADMIN_API.BANGS],
-		responses: APIResponseSpec.describeBasic(APIResponseSpec.success("Dataset status retrieved", SettingsModels.BangDatasetStatus)),
+		responses: APIResponseSpec.describeBasic(
+			APIResponseSpec.success("Dataset status retrieved", SettingsModels.BangDatasetStatus),
+		),
 	}),
 	async (c) => APIResponse.success(c, "Dataset status retrieved", await BangDataset.status()),
 );
@@ -23,9 +25,12 @@ router.post(
 	"/dataset/refresh",
 	APIRouteSpec.authenticated({
 		summary: "Refresh the DuckDuckGo bang dataset",
-		description: "Downloads https://duckduckgo.com/bang.js through the default proxies and replaces the local copy.",
+		description:
+			"Downloads https://duckduckgo.com/bang.js through the default proxies and replaces the local copy.",
 		tags: [DOCS_TAGS.ADMIN_API.BANGS],
-		responses: APIResponseSpec.describeBasic(APIResponseSpec.success("Dataset refreshed", SettingsModels.BangDatasetStatus)),
+		responses: APIResponseSpec.describeBasic(
+			APIResponseSpec.success("Dataset refreshed", SettingsModels.BangDatasetStatus),
+		),
 	}),
 	async (c) => APIResponse.success(c, "Dataset refreshed", await BangDataset.refresh()),
 );

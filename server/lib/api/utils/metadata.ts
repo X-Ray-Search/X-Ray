@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
+import type { z } from "zod";
 import { DB } from "../../db/index";
-import { z } from "zod";
 import { SettingsModels } from "../../settings/models";
 
 /**

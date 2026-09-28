@@ -15,7 +15,9 @@ const Settings = z.object({
 
 /**
  * DuckDuckGo web results via the no-JS endpoint (html.duckduckgo.com). Page 2+ must be
- * requested with the hidden "Next" form of the previous page, so those forms are cached.
+ * requested with the hidden "Next" form (incl. the `vqd` token) of the previous page, so those
+ * forms are cached. Without a cached form the page is skipped: DuckDuckGo flags an IP for
+ * several minutes after a couple of rapid requests, so walking pages would get it blocked.
  */
 export class DuckDuckGoEngine extends SearchEngine<z.infer<typeof Settings>> {
 	static readonly definition = SearchEngine.define({
@@ -29,37 +31,40 @@ export class DuckDuckGoEngine extends SearchEngine<z.infer<typeof Settings>> {
 	});
 
 	private static readonly ENDPOINT = "https://html.duckduckgo.com/html/";
-	private static readonly nextForms = new Map<string, { form: Record<string, string>; expires: number }>();
+	private static readonly nextForms = new Map<
+		string,
+		{ form: Record<string, string>; expires: number }
+	>();
 	private static readonly FORM_TTL_MS = 20 * 60_000;
-	/** Deepest page we walk to when the previous page's form is not cached. */
-	private static readonly MAX_PAGE = 5;
-
-	async search(query: SearchTypes.EngineQuery): Promise<SearchTypes.EngineResponse> {
-		if (query.page > DuckDuckGoEngine.MAX_PAGE) return { results: [] };
-		return this.fetchPage(query, query.page);
-	}
 
 	private formKey(query: SearchTypes.EngineQuery, page: number) {
-		return [this.config.slug, query.query, query.language, query.safesearch, query.timeRange, page].join("|");
+		return [
+			this.config.slug,
+			query.query,
+			query.language,
+			query.safesearch,
+			query.timeRange,
+			page,
+		].join("|");
 	}
 
-	private async fetchPage(
-		query: SearchTypes.EngineQuery,
-		page: number,
-	): Promise<SearchTypes.EngineResponse> {
+	async search(query: SearchTypes.EngineQuery): Promise<SearchTypes.EngineResponse> {
+		const page = query.page;
 		const region = DuckDuckGoCommon.region(query.language, this.settings.region);
 		const kp = DuckDuckGoCommon.safeSearch(query.safesearch);
 
 		let form: Record<string, string>;
 		if (page === 1) {
-			form = { q: query.query, b: "", kl: region, kp, df: DuckDuckGoCommon.timeRange(query.timeRange) };
+			form = {
+				q: query.query,
+				b: "",
+				kl: region,
+				kp,
+				df: DuckDuckGoCommon.timeRange(query.timeRange),
+			};
 		} else {
-			let cached = DuckDuckGoEngine.nextForms.get(this.formKey(query, page));
-			if (!cached || cached.expires < Date.now()) {
-				await this.fetchPage(query, page - 1);
-				cached = DuckDuckGoEngine.nextForms.get(this.formKey(query, page));
-			}
-			if (!cached) return { results: [] };
+			const cached = DuckDuckGoEngine.nextForms.get(this.formKey(query, page));
+			if (!cached || cached.expires < Date.now()) return { results: [] };
 			form = { ...cached.form, kl: region, kp };
 		}
 

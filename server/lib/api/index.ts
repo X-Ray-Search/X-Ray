@@ -1,13 +1,14 @@
-import { Logger } from "../utils/logger";
+import { Scalar } from "@scalar/hono-api-reference";
 import { Hono } from "hono";
-import { prettyJSON } from "hono/pretty-json";
 import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
+import { prettyJSON } from "hono/pretty-json";
+import { openAPIRouteHandler } from "hono-openapi";
+import { AppConstants } from "../utils/constants";
+import { Logger } from "../utils/logger";
+import { searxngRouter } from "./searxng";
 import type { APIVersionRouter } from "./utils/apiVersionRouter";
 import { APIv1Router } from "./versions/v1";
-import { openAPIRouteHandler } from "hono-openapi";
-import { Scalar } from "@scalar/hono-api-reference";
-import { AppConstants } from "../utils/constants";
 
 export class API {
 	protected static server: Bun.Server<undefined> | null = null;
@@ -16,7 +17,6 @@ export class API {
 	protected static latestVersion: number | null = null;
 
 	protected static registerVersion(versionRouter: APIVersionRouter, disableDocs: boolean) {
-
 		if (!this.app) {
 			throw new Error("API not initialized. Call API.init() first.");
 		}
@@ -54,7 +54,7 @@ export class API {
 			"*",
 			cors({
 				origin: frontendUrls,
-				allowHeaders: ["Content-Type", "Authorization"],
+				allowHeaders: ["Content-Type", "Authorization", "X-API-Key"],
 				allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
 				maxAge: 600,
 				credentials: true,
@@ -79,6 +79,9 @@ export class API {
 		});
 
 		this.registerVersion(new APIv1Router(), disableDocs);
+
+		// SearXNG compatible API (vendor-native responses, API-key auth) — see ./searxng.
+		this.app.route("/searxng", searxngRouter);
 
 		this.app.get("/health", (c) => {
 			return c.json({
@@ -112,7 +115,9 @@ export class API {
 
 		this.server = Bun.serve({ port, hostname, fetch: this.app.fetch });
 
-		const serverHostnameStr = this.server.hostname?.includes(":") ? `[${this.server.hostname}]` : this.server.hostname;
+		const serverHostnameStr = this.server.hostname?.includes(":")
+			? `[${this.server.hostname}]`
+			: this.server.hostname;
 
 		Logger.log(
 			`${AppConstants.APP_NAME} API listening on ${this.server.protocol}://${serverHostnameStr}:${this.server.port}`,

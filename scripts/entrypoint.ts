@@ -3,7 +3,7 @@
  * ENTRYPOINT). Enables DB auto-migration on cold start, then imports the real startup
  * in `src/index.ts`. See docs/14-deployment.md.
  */
-process.env.APPPREFIX_DB_AUTO_MIGRATE = "true";
+process.env.XRAY_DB_AUTO_MIGRATE = "true";
 
 await import("../.output/server/index.mjs");
 

@@ -1,5 +1,5 @@
-import elliptic from "elliptic";
-import { FixedUint, Uint64, Uint8 } from "low-level";
+import type elliptic from "elliptic";
+import { FixedUint, Uint8, Uint64 } from "low-level";
 
 export interface EllipticBinarySignature extends elliptic.ec.Signature {
 	recoveryParam: number;

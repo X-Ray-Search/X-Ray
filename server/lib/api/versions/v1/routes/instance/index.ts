@@ -49,7 +49,11 @@ router.get(
 				icon: SearchTypes.CategoryInfo[id].icon,
 			})),
 			features: { ai: aiAvailable, searxng_api: settings.searxng_api_enabled },
-			engines: engines.map((e) => ({ slug: e.config.slug, name: e.config.name, categories: [...e.config.categories] })),
+			engines: engines.map((e) => ({
+				slug: e.config.slug,
+				name: e.config.name,
+				categories: [...e.config.categories],
+			})),
 			instant_answer_providers: InstantAnswerService.list().map((p) => ({
 				id: p.id,
 				name: p.name,

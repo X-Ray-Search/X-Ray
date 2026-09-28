@@ -58,7 +58,9 @@ async function validate(
 	const parsed = definition.settings.safeParse(merged);
 	if (!parsed.success) {
 		const issue = parsed.error.issues[0];
-		return { error: `Invalid settings${issue?.path.length ? ` (${issue.path.join(".")})` : ""}: ${issue?.message}` };
+		return {
+			error: `Invalid settings${issue?.path.length ? ` (${issue.path.join(".")})` : ""}: ${issue?.message}`,
+		};
 	}
 
 	if (body.proxy_ids?.length) {
@@ -67,7 +69,8 @@ async function validate(
 			.from(DB.Tables.proxies)
 			.where(inArray(DB.Tables.proxies.id, body.proxy_ids))
 			.all();
-		if (found.length !== new Set(body.proxy_ids).size) return { error: "Unknown proxy id in proxy_ids" };
+		if (found.length !== new Set(body.proxy_ids).size)
+			return { error: "Unknown proxy id in proxy_ids" };
 	}
 	return { settings: parsed.data as Record<string, any> };
 }
@@ -120,7 +123,11 @@ router.get(
 	}),
 
 	async (c) => {
-		const rows = await DB.instance().select().from(DB.Tables.searchEngines).orderBy(DB.Tables.searchEngines.id).all();
+		const rows = await DB.instance()
+			.select()
+			.from(DB.Tables.searchEngines)
+			.orderBy(DB.Tables.searchEngines.id)
+			.all();
 		return APIResponse.success(c, "Engines retrieved", rows.map(toModel));
 	},
 );
@@ -130,7 +137,8 @@ router.post(
 
 	APIRouteSpec.authenticated({
 		summary: "Create engine",
-		description: "Add a search engine instance. `settings` are validated against the engine type's schema.",
+		description:
+			"Add a search engine instance. `settings` are validated against the engine type's schema.",
 		tags: [DOCS_TAGS.ADMIN_API.ENGINES],
 		responses: APIResponseSpec.describeWithWrongInputs(
 			APIResponseSpec.created("Engine created", AdminEnginesModel.Engine),
@@ -146,7 +154,11 @@ router.post(
 		const checked = await validate(definition, body);
 		if ("error" in checked) return APIResponse.badRequest(c, checked.error);
 
-		const clash = await DB.instance().select().from(DB.Tables.searchEngines).where(eq(DB.Tables.searchEngines.slug, body.slug)).get();
+		const clash = await DB.instance()
+			.select()
+			.from(DB.Tables.searchEngines)
+			.where(eq(DB.Tables.searchEngines.slug, body.slug))
+			.get();
 		if (clash) return APIResponse.conflict(c, "An engine with this slug already exists");
 
 		const row = await DB.instance()
@@ -165,18 +177,21 @@ router.use(
 	zValidator("param", AdminEnginesModel.Params),
 
 	async (c, next) => {
-		// @ts-ignore
+		// @ts-expect-error
 		const { engineID } = c.req.valid("param") as AdminEnginesModel.Params;
-		const row = await DB.instance().select().from(DB.Tables.searchEngines).where(eq(DB.Tables.searchEngines.id, engineID)).get();
+		const row = await DB.instance()
+			.select()
+			.from(DB.Tables.searchEngines)
+			.where(eq(DB.Tables.searchEngines.id, engineID))
+			.get();
 		if (!row) return APIResponse.notFound(c, "Engine not found");
-		// @ts-ignore
+		// @ts-expect-error
 		c.set(ENGINE_KEY, row);
 		await next();
 	},
 );
 
 function engineOf(c: Context) {
-	// @ts-ignore
 	return c.get(ENGINE_KEY) as DB.Models.SearchEngine;
 }
 
@@ -219,7 +234,11 @@ router.put(
 		if ("error" in checked) return APIResponse.badRequest(c, checked.error);
 
 		if (body.slug && body.slug !== row.slug) {
-			const clash = await DB.instance().select().from(DB.Tables.searchEngines).where(eq(DB.Tables.searchEngines.slug, body.slug)).get();
+			const clash = await DB.instance()
+				.select()
+				.from(DB.Tables.searchEngines)
+				.where(eq(DB.Tables.searchEngines.slug, body.slug))
+				.get();
 			if (clash) return APIResponse.conflict(c, "An engine with this slug already exists");
 		}
 
@@ -248,7 +267,10 @@ router.delete(
 
 	async (c) => {
 		const row = engineOf(c);
-		await DB.instance().delete(DB.Tables.searchEngines).where(eq(DB.Tables.searchEngines.id, row.id)).run();
+		await DB.instance()
+			.delete(DB.Tables.searchEngines)
+			.where(eq(DB.Tables.searchEngines.id, row.id))
+			.run();
 		EngineHealth.reset(row.slug);
 		await afterChange();
 		return APIResponse.successNoData(c, "Engine deleted");

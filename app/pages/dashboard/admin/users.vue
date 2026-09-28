@@ -13,7 +13,7 @@ definePageMeta({
 });
 
 useSeoMeta({
-	title: "Users | ProjectName",
+	title: "Users | X-Ray",
 	description: "Manage users",
 });
 

@@ -7,45 +7,21 @@ defineProps<{
 }>();
 
 const toast = useToast();
+const userInfo = await useUserInfoStore().use();
+const { signOut } = useSession();
 
-const userInfoStore = useUserInfoStore();
-const userInfo = await userInfoStore.use();
-
-const isAdmin = computed(() => userInfo.value?.role === "admin");
-
-const user = computed(() => {
-	const name = userInfo.value?.display_name ?? "Unknown User";
-	return {
-		name,
-		avatar: {
-			alt: name,
-		},
-	};
-});
+const name = computed(
+	() => userInfo.value?.display_name || userInfo.value?.username || "Unknown user",
+);
 
 async function logout() {
-	const result = await useAPI((api) => api.postAuthLogout({}), true);
-
-	// Clear local state regardless of the API result.
-	await userInfoStore.clear();
-	useAppCookies().sessionToken.set(null);
-
-	if (!result.success) {
-		toast.add({
-			title: "Logged out",
-			description: "Your local session was cleared, but the server logout failed.",
-			icon: "i-lucide-alert-circle",
-			color: "warning",
-		});
-	} else {
-		toast.add({
-			title: "Logged out",
-			description: "You have been successfully logged out.",
-			icon: "i-lucide-check",
-			color: "success",
-		});
-	}
-
+	const ok = await signOut();
+	toast.add({
+		title: "Signed out",
+		description: ok ? undefined : "Your local session was cleared, but the server did not respond.",
+		icon: "i-lucide-log-out",
+		color: ok ? "success" : "warning",
+	});
 	await navigateTo("/auth/login");
 }
 
@@ -53,33 +29,15 @@ const items = computed<DropdownMenuItem[][]>(() => [
 	[
 		{
 			type: "label",
-			label: user.value.name,
-			avatar: user.value.avatar,
+			label: name.value,
+			description: userInfo.value ? `@${userInfo.value.username}` : undefined,
 		},
 	],
 	[
-		{
-			label: "Settings",
-			icon: "i-lucide-settings",
-			to: "/dashboard/settings",
-		},
-		...(isAdmin.value
-			? [
-					{
-						label: "Manage Users",
-						icon: "i-lucide-users",
-						to: "/dashboard/admin/users",
-					},
-				]
-			: []),
+		{ label: "Search", icon: "i-lucide-search", to: "/" },
+		{ label: "Preferences", icon: "i-lucide-sliders-horizontal", to: "/dashboard/preferences" },
 	],
-	[
-		{
-			label: "Log out",
-			icon: "i-lucide-log-out",
-			onSelect: logout,
-		},
-	],
+	[{ label: "Sign out", icon: "i-lucide-log-out", onSelect: logout }],
 ]);
 </script>
 
@@ -87,25 +45,21 @@ const items = computed<DropdownMenuItem[][]>(() => [
 	<UDropdownMenu
 		:items="items"
 		:content="{ align: 'center', collisionPadding: 12 }"
-		:ui="{
-			viewport: 'main-bg-color',
-			content: collapsed ? 'w-48' : 'w-(--reka-dropdown-menu-trigger-width)',
-		}"
+		:ui="{ content: collapsed ? 'w-48' : 'w-(--reka-dropdown-menu-trigger-width)' }"
 	>
 		<UButton
-			v-bind="{
-				...user,
-				label: collapsed ? undefined : user.name,
-				trailingIcon: collapsed ? undefined : 'i-lucide-chevrons-up-down',
-			}"
+			:label="collapsed ? undefined : name"
+			:trailing-icon="collapsed ? undefined : 'i-lucide-chevrons-up-down'"
 			color="neutral"
 			variant="ghost"
 			block
 			:square="collapsed"
 			class="data-[state=open]:bg-elevated/50 hover:bg-elevated/50"
-			:ui="{
-				trailingIcon: 'text-dimmed',
-			}"
-		/>
+			:ui="{ trailingIcon: 'text-dimmed' }"
+		>
+			<template #leading>
+				<Gravatar :email="userInfo?.email" :alt="name" size="xs" />
+			</template>
+		</UButton>
 	</UDropdownMenu>
 </template>

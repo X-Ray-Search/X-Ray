@@ -1,14 +1,14 @@
+import { and, eq, like, or } from "drizzle-orm";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
-import { and, eq, like, or } from "drizzle-orm";
 import { DB } from "../../../../../../db";
-import { type DrizzleDB } from "../../../../../../db/utils";
+import type { DrizzleDB } from "../../../../../../db/utils";
 import { APIResponse } from "../../../../../utils/api-res";
-import { APIResponseSpec, APIRouteSpec } from "../../../../../utils/specHelpers";
-import { AdminUsersModel } from "./model";
 import { AuthHandler, SessionHandler } from "../../../../../utils/authHandler";
 import { UserPreferencesHandler } from "../../../../../utils/preferences";
+import { APIResponseSpec, APIRouteSpec } from "../../../../../utils/specHelpers";
 import { DOCS_TAGS } from "../../../docs";
+import { AdminUsersModel } from "./model";
 
 const TARGET_USER_KEY = "adminTargetUser";
 
@@ -121,7 +121,7 @@ router.use(
 	zValidator("param", AdminUsersModel.UserId.Params),
 
 	async (c, next) => {
-		// @ts-ignore - hono-openapi does not type "param" yet
+		// @ts-expect-error - hono-openapi does not type "param" yet
 		const { userId } = c.req.valid("param") as AdminUsersModel.UserId.Params;
 
 		const user = DB.instance()
@@ -134,7 +134,7 @@ router.use(
 			return APIResponse.notFound(c, "User not found");
 		}
 
-		// @ts-ignore
+		// @ts-expect-error
 		c.set(TARGET_USER_KEY, user);
 
 		await next();
@@ -156,7 +156,7 @@ router.get(
 	}),
 
 	async (c) => {
-		// @ts-ignore
+		// @ts-expect-error
 		const user = c.get(TARGET_USER_KEY) as DB.Models.User;
 		return APIResponse.success(c, "User retrieved successfully", sanitizeUser(user));
 	},
@@ -180,7 +180,7 @@ router.put(
 	zValidator("json", AdminUsersModel.Update.Body),
 
 	async (c) => {
-		// @ts-ignore
+		// @ts-expect-error
 		const user = c.get(TARGET_USER_KEY) as DB.Models.User;
 		const updateBody = c.req.valid("json") as AdminUsersModel.Update.Body;
 
@@ -259,7 +259,7 @@ router.put(
 	zValidator("json", AdminUsersModel.UpdatePassword.Body),
 
 	async (c) => {
-		// @ts-ignore
+		// @ts-expect-error
 		const user = c.get(TARGET_USER_KEY) as DB.Models.User;
 		const { password } = c.req.valid("json") as AdminUsersModel.UpdatePassword.Body;
 
@@ -294,7 +294,7 @@ router.delete(
 	}),
 
 	async (c) => {
-		// @ts-ignore
+		// @ts-expect-error
 		const user = c.get(TARGET_USER_KEY) as DB.Models.User;
 
 		await DB.instance().transaction(async (tx: DrizzleDB) => {

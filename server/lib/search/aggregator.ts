@@ -63,11 +63,21 @@ export class SearchAggregator {
 
 		const started = performance.now();
 		const controller = new AbortController();
-		// Engines may issue several requests (tokens, pagination) — bound the whole call.
-		const deadline = setTimeout(() => controller.abort(), engine.config.timeoutMs + 500);
+		// Engines may issue several requests (tokens, pagination) — bound the whole call, and
+		// don't rely on the engine honouring the abort signal.
+		let deadline: ReturnType<typeof setTimeout> | undefined;
+		const timedOut = new Promise<never>((_, reject) => {
+			deadline = setTimeout(() => {
+				controller.abort();
+				reject(new EngineError("timeout", "Engine timed out"));
+			}, engine.config.timeoutMs + 500);
+		});
 
 		try {
-			const response = await engine.withSignal(controller.signal).search(query);
+			const response = await Promise.race([
+				engine.withSignal(controller.signal).search(query),
+				timedOut,
+			]);
 			const time_ms = Math.round(performance.now() - started);
 			EngineHealth.recordSuccess(slug, time_ms);
 			return {
@@ -76,7 +86,9 @@ export class SearchAggregator {
 				status: { ...base, status: "ok", time_ms, results: response.results.length },
 			} satisfies SearchAggregator.EngineOutcome;
 		} catch (err) {
-			const error = controller.signal.aborted ? new EngineError("timeout", "Engine timed out") : EngineError.from(err);
+			const error = controller.signal.aborted
+				? new EngineError("timeout", "Engine timed out")
+				: EngineError.from(err);
 			const time_ms = Math.round(performance.now() - started);
 			EngineHealth.recordFailure(slug, error);
 			if (error.kind !== "timeout") Logger.debug(`Engine '${slug}' failed:`, error.message);
@@ -128,7 +140,8 @@ export class SearchAggregator {
 		existing.score += points;
 
 		// Keep the richest data from all engines.
-		if ((result.content?.length ?? 0) > (existing.content?.length ?? 0)) existing.content = result.content;
+		if ((result.content?.length ?? 0) > (existing.content?.length ?? 0))
+			existing.content = result.content;
 		if (!existing.title && result.title) existing.title = result.title;
 		existing.thumbnail ??= result.thumbnail;
 		existing.imgSrc ??= result.imgSrc;

@@ -31,7 +31,10 @@ export class SearchAccess {
 			c.header("Retry-After", String(limit.retryAfterSeconds));
 			return {
 				ok: false,
-				response: APIResponse.tooManyRequests(c, `Too many searches. Try again in ${limit.retryAfterSeconds}s`),
+				response: APIResponse.tooManyRequests(
+					c,
+					`Too many searches. Try again in ${limit.retryAfterSeconds}s`,
+				),
 			};
 		}
 		return { ok: true, userID: null };

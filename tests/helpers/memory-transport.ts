@@ -1,5 +1,5 @@
-import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
+import nodemailer from "nodemailer";
 import type MailMessage from "nodemailer/lib/mailer/mail-message";
 import type { CapturedEmail } from "../../server/lib/api/utils/email";
 

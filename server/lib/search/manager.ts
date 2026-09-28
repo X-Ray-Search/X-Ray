@@ -1,7 +1,7 @@
 import { DB } from "../db";
 import { Logger } from "../utils/logger";
-import type { SearchEngine } from "./engines/base";
 import { SearchEngineRegistry } from "./engines";
+import type { SearchEngine } from "./engines/base";
 import { EngineHealth } from "./health";
 import type { SearchTypes } from "./types";
 
@@ -38,7 +38,10 @@ export class SearchEngineManager {
 	];
 
 	static async seedDefaultsIfEmpty() {
-		const existing = await DB.instance().select({ id: DB.Tables.searchEngines.id }).from(DB.Tables.searchEngines).limit(1);
+		const existing = await DB.instance()
+			.select({ id: DB.Tables.searchEngines.id })
+			.from(DB.Tables.searchEngines)
+			.limit(1);
 		if (existing.length) return;
 
 		const rows = this.DEFAULT_ENGINES.flatMap((engine) => {
@@ -94,7 +97,15 @@ export class SearchEngineManager {
 	static instantiate(
 		row: Pick<
 			DB.Models.SearchEngine,
-			"id" | "slug" | "name" | "engine_type" | "categories" | "weight" | "timeout_ms" | "proxy_ids" | "settings"
+			| "id"
+			| "slug"
+			| "name"
+			| "engine_type"
+			| "categories"
+			| "weight"
+			| "timeout_ms"
+			| "proxy_ids"
+			| "settings"
 		>,
 	): SearchEngine {
 		const cls = SearchEngineRegistry.get(row.engine_type);

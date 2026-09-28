@@ -33,7 +33,10 @@ export class BraveAPIEngine extends SearchEngine<z.infer<typeof Settings>> {
 		const params = new URLSearchParams({
 			q: query.query,
 			count: String(count),
-			safesearch: query.category === "images" && query.safesearch === 1 ? "strict" : ["off", "moderate", "strict"][query.safesearch]!,
+			safesearch:
+				query.category === "images" && query.safesearch === 1
+					? "strict"
+					: ["off", "moderate", "strict"][query.safesearch]!,
 		});
 		if (query.category !== "images") params.set("offset", String(Math.min(query.page - 1, 9)));
 		if (query.timeRange && query.category !== "images") {
@@ -50,7 +53,8 @@ export class BraveAPIEngine extends SearchEngine<z.infer<typeof Settings>> {
 			{ headers: { "X-Subscription-Token": this.settings.api_key, Accept: "application/json" } },
 		);
 
-		const items: any[] = query.category === "general" ? (data.web?.results ?? []) : (data.results ?? []);
+		const items: any[] =
+			query.category === "general" ? (data.web?.results ?? []) : (data.results ?? []);
 		const results: SearchTypes.EngineResult[] = [];
 		for (const item of items) {
 			const url = SearchUtils.safeURL(item.url)?.toString();

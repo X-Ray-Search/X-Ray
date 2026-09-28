@@ -7,7 +7,7 @@ definePageMeta({
 });
 
 useSeoMeta({
-	title: "Forgot Password | ProjectName",
+	title: "Forgot Password | X-Ray",
 	description: "Reset your password",
 });
 

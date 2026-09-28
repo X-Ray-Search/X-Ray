@@ -20,9 +20,19 @@ export namespace SearchModel.Search {
 		category: SearchTypes.Category.optional().describe("Defaults to the user's default category"),
 		page: z.coerce.number().int().min(1).max(20).default(1),
 		language: Locale.optional(),
-		safesearch: z.coerce.number().int().min(0).max(2).optional().describe("0 off, 1 moderate, 2 strict"),
+		safesearch: z.coerce
+			.number()
+			.int()
+			.min(0)
+			.max(2)
+			.optional()
+			.describe("0 off, 1 moderate, 2 strict"),
 		time_range: SearchTypes.TimeRange.optional(),
-		engines: z.string().max(500).optional().describe("Comma separated engine slugs to restrict the search to"),
+		engines: z
+			.string()
+			.max(500)
+			.optional()
+			.describe("Comma separated engine slugs to restrict the search to"),
 	});
 	export type Query = z.infer<typeof Query>;
 
@@ -47,7 +57,10 @@ export namespace SearchModel.AI {
 	export const Body = z.object({
 		q: z.string().trim().min(1).max(500),
 		language: Locale.optional(),
-		stream: z.boolean().default(true).describe("Stream as Server-Sent Events (default) or return JSON"),
+		stream: z
+			.boolean()
+			.default(true)
+			.describe("Stream as Server-Sent Events (default) or return JSON"),
 	});
 	export type Body = z.infer<typeof Body>;
 

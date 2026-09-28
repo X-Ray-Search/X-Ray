@@ -1,6 +1,15 @@
 import type {
 	GetAccountApikeysResponses,
+	GetAccountBangsResponses,
+	GetAccountPreferencesSearchResponses,
 	GetAccountResponses,
+	GetAdminEnginesResponses,
+	GetAdminEnginesTypesResponses,
+	GetAdminProxiesResponses,
+	GetAdminProxiesTypesResponses,
+	GetInstanceResponses,
+	GetSearchAutocompleteResponses,
+	GetSearchResponses,
 	PostAccountApikeysData,
 } from "~/api-client";
 
@@ -12,3 +21,25 @@ export type UserInfo = GetAccountResponses["200"]["data"];
 
 export type APIKey = GetAccountApikeysResponses["200"]["data"][number];
 export type NewAPIKey = NonNullable<PostAccountApikeysData["body"]>;
+
+export type InstanceInfo = GetInstanceResponses["200"]["data"];
+
+export type SearchResponse = GetSearchResponses["200"]["data"];
+export type SearchResult = SearchResponse["results"][number];
+export type InstantAnswer = SearchResponse["instant_answers"][number];
+export type EngineStatus = SearchResponse["engines"][number];
+export type SearchCategory = SearchResponse["category"];
+export type TimeRange = "day" | "week" | "month" | "year";
+
+export type BangSuggestion = GetSearchAutocompleteResponses["200"]["data"]["bangs"][number];
+
+export type SearchPreferences = GetAccountPreferencesSearchResponses["200"]["data"]["effective"];
+export type SearchPreferenceOverrides =
+	GetAccountPreferencesSearchResponses["200"]["data"]["overrides"];
+
+export type CustomBang = GetAccountBangsResponses["200"]["data"][number];
+
+export type AdminEngine = GetAdminEnginesResponses["200"]["data"][number];
+export type EngineType = GetAdminEnginesTypesResponses["200"]["data"][number];
+export type AdminProxy = GetAdminProxiesResponses["200"]["data"][number];
+export type ProxyType = GetAdminProxiesTypesResponses["200"]["data"][number];

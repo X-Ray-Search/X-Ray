@@ -60,7 +60,8 @@ export class YouTubeEngine extends SearchEngine<z.infer<typeof Settings>> {
 		}
 
 		const sections: any[] =
-			data.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents ?? [];
+			data.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents ??
+			[];
 		const embedHost = this.settings.privacy_embeds ? "www.youtube-nocookie.com" : "www.youtube.com";
 
 		const results: SearchTypes.EngineResult[] = [];

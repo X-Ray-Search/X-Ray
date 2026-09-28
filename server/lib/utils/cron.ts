@@ -1,4 +1,8 @@
 import type { CronJob as BunCronJob } from "bun";
+import { BangDataset } from "../bangs/dataset";
+import { SearchService } from "../search/service";
+import { ConfigHandler } from "./config";
+import { Logger } from "./logger";
 
 class CronJob {
 	private _job: BunCronJob | null = null;
@@ -28,12 +32,19 @@ export class CronJobHandler {
 		this.initialized = true;
 
 		this.jobs.push(
-			new CronJob("* * * * *", async () => {
-				// do something every minute
+			// Drop expired search result pages.
+			new CronJob("*/5 * * * *", async () => {
+				SearchService.pruneCache();
 			}),
 
-			new CronJob("* * * * *", async () => {
-				// do something every minute
+			// Keep the DuckDuckGo bang dataset fresh (respects the auto-update setting/interval).
+			new CronJob("17 * * * *", async () => {
+				if (ConfigHandler.getConfig()?.BANGS_DISABLE_AUTO_FETCH) return;
+				try {
+					await BangDataset.refreshIfStale();
+				} catch (err) {
+					Logger.warn("Scheduled bang dataset refresh failed:", (err as Error).message);
+				}
 			}),
 		);
 	}

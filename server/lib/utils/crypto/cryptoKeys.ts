@@ -1,7 +1,7 @@
-import { type ec as ellipticCurve } from "elliptic";
-import { FixedUint, Uint, Uint256 } from "low-level";
+import type { ec as ellipticCurve } from "elliptic";
+import { FixedUint, type Uint, Uint256 } from "low-level";
 import { LCrypt } from "./lcrypt";
-import { Signature, type EllipticBinarySignature } from "./signature";
+import type { EllipticBinarySignature, Signature } from "./signature";
 
 type NewKeyPair<T> = new (keyPair: ellipticCurve.KeyPair) => T;
 

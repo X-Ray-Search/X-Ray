@@ -66,7 +66,10 @@ export class SettingsHandler {
 	}
 
 	/** Replace semantics: keys missing from `overrides` fall back to the instance default. */
-	static async setUserOverrides(userID: number, overrides: SettingsModels.SearchPreferenceOverrides) {
+	static async setUserOverrides(
+		userID: number,
+		overrides: SettingsModels.SearchPreferenceOverrides,
+	) {
 		const cleaned = Object.fromEntries(
 			Object.entries(overrides).filter(([, value]) => value !== undefined && value !== null),
 		) as SettingsModels.SearchPreferenceOverrides;
@@ -101,7 +104,11 @@ export class SettingsHandler {
 
 	static toPublicAIConfig(config: SettingsModels.AIConfig): SettingsModels.AIConfigPublic {
 		const { api_key, ...rest } = config;
-		return { ...rest, api_key_set: api_key.length > 0 };
+		return {
+			...rest,
+			api_key_set: api_key.length > 0,
+			default_system_prompt: SettingsModels.DEFAULT_AI_SYSTEM_PROMPT,
+		};
 	}
 
 	/** Whether the admin configured a usable AI endpoint. */

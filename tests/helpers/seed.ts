@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
-import { DB } from "../../server/lib/db";
 import { SessionHandler } from "../../server/lib/api/utils/authHandler";
+import { DB } from "../../server/lib/db";
 
 export type SeededUser = Omit<DB.Models.User, "password_hash"> & { password: string };
 export type SeededSession = Awaited<ReturnType<typeof SessionHandler.createSession>>;

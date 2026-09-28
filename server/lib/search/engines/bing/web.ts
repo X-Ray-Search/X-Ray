@@ -1,12 +1,12 @@
 import type { HTMLElement } from "node-html-parser";
-import { z } from "zod";
+import type { z } from "zod";
 import { EngineError } from "../../errors";
 import type { SearchTypes } from "../../types";
 import { SearchUtils } from "../../utils";
 import { SearchEngine } from "../base";
 import { BingCommon } from "./common";
 
-const Settings = z.object({});
+const Settings = BingCommon.Settings;
 
 export class BingEngine extends SearchEngine<z.infer<typeof Settings>> {
 	static readonly definition = SearchEngine.define({
@@ -22,15 +22,16 @@ export class BingEngine extends SearchEngine<z.infer<typeof Settings>> {
 	async search(query: SearchTypes.EngineQuery): Promise<SearchTypes.EngineResponse> {
 		const params = new URLSearchParams({ q: query.query, pq: query.query });
 		if (query.page > 1) {
+			// `FORM=PORE` is what Bing's own "next" link sends; `PERE` returns page 1 again.
 			params.set("first", String((query.page - 1) * 10 + 1));
-			params.set("FORM", query.page === 2 ? "PERE" : `PERE${query.page - 2}`);
+			params.set("FORM", "PORE");
 		}
 		const filter = BingCommon.timeFilter(query.timeRange);
 		if (filter) params.set("filters", filter);
 
 		const { root, raw } = await this.http.html(`https://www.bing.com/search?${params}`, {
 			language: query.language,
-			cookies: BingCommon.cookies(query.language, query.safesearch),
+			cookies: BingCommon.cookies(query.safesearch, this.settings.market),
 		});
 
 		const results = BingEngine.parseResults(root);

@@ -12,11 +12,11 @@
 	"commands": {
 		"api-client": {
 			"description": "Regenerate the typed API client",
-			"prompt": "Regenerate and verify the generated API client for this full-stack Nuxt project.\n\n1. Run `bun run api-client:generate` (reads the in-server spec at http://localhost:3000/api/docs/v1/openapi — start the dev server first if needed).\n2. Do not hand-edit generated `*.gen.ts` files under `app/api-client/`.\n3. If generation fails, diagnose whether the Hono backend or the OpenAPI route is the issue.\n4. Summarize the outcome and any follow-up needed."
+			"prompt": "Regenerate and verify the generated API client.\n\n1. Run `bun run api-client:generate` — it boots the Hono API in-process, writes the OpenAPI spec, runs `openapi-ts` and then `scripts/patch-api-client.ts` (no dev server needed).\n2. Do not hand-edit generated `*.gen.ts` files under `app/api-client/`.\n3. If generation fails, diagnose whether a Hono route or its Zod schema is the issue.\n4. Summarize the outcome and any follow-up needed."
 		},
 		"db": {
 			"description": "Run Drizzle migrations",
-			"prompt": "Run the Drizzle migration flow for this project.\n\n1. Run `bun run db:generate` to generate migrations from `server/db/schema.ts`.\n2. Run `bun run db:push` (dev) or `bun run db:migrate` (committed migrations).\n3. Summarize what was generated or applied."
+			"prompt": "Run the Drizzle migration flow for this project.\n\n1. Run `bun run db:generate` to generate a migration from `server/lib/db/schema.ts` into `drizzle/migrations/`.\n2. Migrations are applied on start when `XRAY_DB_AUTO_MIGRATE=true`; `bun run db:migrate` applies them manually.\n3. Summarize what was generated or applied."
 		},
 		"verify": {
 			"description": "Run the repo verification flow",
@@ -32,7 +32,7 @@
 		},
 		"dev": {
 			"description": "Start or inspect the dev setup",
-			"prompt": "Work on the local development setup for this project.\n\n1. If needed, install dependencies with `bun install`.\n2. Use `bun run dev` for the dev server on port 3000.\n3. If there is a dev-server issue, inspect the Nuxt config, runtime env, and Bun-specific wiring before making changes.\n4. Summarize what you started, changed, or found."
+			"prompt": "Work on the local development setup for this project.\n\n1. If needed, install dependencies with `bun install` and copy `example.env` to `.env`.\n2. Use `bun run dev` for the dev server on port 12418. On Windows the Nuxt CLI dev worker is unreliable under Bun — verify with `bun run build && bun run .output/server/index.mjs` when in doubt.\n3. If there is a dev-server issue, inspect the Nuxt config, runtime env, and Bun-specific wiring before making changes.\n4. Summarize what you started, changed, or found."
 		}
 	},
 	"fileScan": {

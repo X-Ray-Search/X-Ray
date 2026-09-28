@@ -19,7 +19,12 @@ export namespace InstanceModel {
 				z.object({ slug: z.string(), name: z.string(), categories: z.array(SearchTypes.Category) }),
 			),
 			instant_answer_providers: z.array(
-				z.object({ id: z.string(), name: z.string(), description: z.string(), examples: z.array(z.string()) }),
+				z.object({
+					id: z.string(),
+					name: z.string(),
+					description: z.string(),
+					examples: z.array(z.string()),
+				}),
 			),
 			autocomplete_providers: z.array(z.object({ id: z.string(), name: z.string() })),
 			search_defaults: SettingsModels.SearchPreferences,

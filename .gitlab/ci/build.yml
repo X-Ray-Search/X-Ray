@@ -15,10 +15,8 @@ build-and-push:
 
   before_script:
   
-    # Install Bun and dependencies
     - apt-get update
     - apt-get install -y ca-certificates curl gnupg
-    - bun install --frozen-lockfile --production
 
     # Docker install
 
@@ -39,8 +37,7 @@ build-and-push:
 
   script:
 
-    # Build the nuxt app and docker image, then push to the registry
-    - bun run build
+    # The Dockerfile builds the Nuxt app itself (multi-stage); build the image and push it.
 
     - docker build -f docker/Dockerfile -t "$CI_REGISTRY_IMAGE:latest" .
     - docker push "$CI_REGISTRY_IMAGE:latest"

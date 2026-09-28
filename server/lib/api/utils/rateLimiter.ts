@@ -18,7 +18,11 @@ export class RateLimiter {
 	}
 
 	/** Count a hit; `limit <= 0` disables limiting. */
-	static hit(key: string, limit: number, windowMs = 60_000): { allowed: boolean; retryAfterSeconds: number } {
+	static hit(
+		key: string,
+		limit: number,
+		windowMs = 60_000,
+	): { allowed: boolean; retryAfterSeconds: number } {
 		if (limit <= 0) return { allowed: true, retryAfterSeconds: 0 };
 		const now = Date.now();
 		let entry = this.windows.get(key);

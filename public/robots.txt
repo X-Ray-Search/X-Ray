@@ -1,5 +1,5 @@
-User-Agent: *
-Allow: /
+User-agent: *
+Disallow: /search
+Disallow: /api/
 Disallow: /dashboard
-
-sitemap: https://www.leicraft.de/utils/sitemap.xml
+Disallow: /auth

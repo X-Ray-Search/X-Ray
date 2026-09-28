@@ -1,0 +1,13 @@
+{
+	"version": "7",
+	"dialect": "sqlite",
+	"entries": [
+		{
+			"idx": 0,
+			"version": "6",
+			"when": 1790337916336,
+			"tag": "0000_clear_madame_masque",
+			"breakpoints": true
+		}
+	]
+}

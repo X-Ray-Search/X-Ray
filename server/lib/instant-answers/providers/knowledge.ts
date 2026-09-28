@@ -35,7 +35,7 @@ export class DefinitionProvider extends InstantAnswerProvider {
 				`https://en.wiktionary.org/api/rest_v1/page/definition/${encodeURIComponent(word.replace(/ /g, "_"))}`,
 				{ headers: { "User-Agent": AppConstants.BOT_USER_AGENT } },
 			);
-			entries = res.ok ? ((await res.json()) as Record<string, any[]>)?.en ?? null : null;
+			entries = res.ok ? (((await res.json()) as Record<string, any[]>)?.en ?? null) : null;
 			DefinitionProvider.cache.set(word, entries);
 		}
 		if (!entries?.length) return null;
@@ -60,7 +60,10 @@ export class DefinitionProvider extends InstantAnswerProvider {
 			title: word,
 			text: `${word} (${meanings[0]!.part_of_speech}): ${first}`,
 			data: { word, meanings },
-			source: { name: "Wiktionary", url: `https://en.wiktionary.org/wiki/${encodeURIComponent(word)}` },
+			source: {
+				name: "Wiktionary",
+				url: `https://en.wiktionary.org/wiki/${encodeURIComponent(word)}`,
+			},
 		};
 	}
 }
@@ -91,7 +94,13 @@ export class WikipediaPanelProvider extends InstantAnswerProvider {
 	async answer(query: string, ctx: InstantAnswerProvider.Context) {
 		const q = query.trim();
 		// Topics, not questions or long sentences.
-		if (q.length < 2 || q.length > 80 || q.split(/\s+/).length > 6 || /[?=+*/^]/.test(q) || /^\d+$/.test(q)) {
+		if (
+			q.length < 2 ||
+			q.length > 80 ||
+			q.split(/\s+/).length > 6 ||
+			/[?=+*/^]/.test(q) ||
+			/^\d+$/.test(q)
+		) {
 			return null;
 		}
 
@@ -142,7 +151,9 @@ export class WikipediaPanelProvider extends InstantAnswerProvider {
 			description: (page.description as string | undefined) ?? null,
 			extract: page.extract as string,
 			thumbnail: page.thumbnail?.source ?? null,
-			url: page.content_urls?.desktop?.page ?? `https://${lang}.wikipedia.org/wiki/${encodeURIComponent(title)}`,
+			url:
+				page.content_urls?.desktop?.page ??
+				`https://${lang}.wikipedia.org/wiki/${encodeURIComponent(title)}`,
 			lang,
 		};
 	}

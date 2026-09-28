@@ -1,17 +1,17 @@
+import { randomBytes as crypto_randomBytes } from "crypto";
+import { eq } from "drizzle-orm";
 import { Hono } from "hono";
-import { ResetPasswordModel } from "./model";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../../db";
-import { type DrizzleDB } from "../../../../../../db/utils";
-import { eq } from "drizzle-orm";
+import type { DrizzleDB } from "../../../../../../db/utils";
+import { LCrypt } from "../../../../../../utils/crypto/lcrypt";
+import { Logger } from "../../../../../../utils/logger";
 import { APIResponse } from "../../../../../utils/api-res";
 import { AuthHandler, SessionHandler } from "../../../../../utils/authHandler";
+import { EmailService } from "../../../../../utils/email";
 import { APIResponseSpec, APIRouteSpec } from "../../../../../utils/specHelpers";
 import { DOCS_TAGS } from "../../../docs";
-import { randomBytes as crypto_randomBytes } from "crypto";
-import { Logger } from "../../../../../../utils/logger";
-import { EmailService } from "../../../../../utils/email";
-import { LCrypt } from "../../../../../../utils/crypto/lcrypt";
+import { ResetPasswordModel } from "./model";
 
 // In-memory rate limiter for password reset requests
 const RESET_REQUEST_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
@@ -100,7 +100,7 @@ router.post(
 				return APIResponse.badRequest(c, "Invalid reset token");
 			}
 
-			let checkToken = DB.instance()
+			const checkToken = DB.instance()
 				.select()
 				.from(DB.Tables.passwordResets)
 				.where(eq(DB.Tables.passwordResets.token, hashedResetToken))

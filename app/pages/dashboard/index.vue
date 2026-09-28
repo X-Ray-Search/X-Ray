@@ -1,92 +1,79 @@
 <script setup lang="ts">
+import { useInstanceStore } from "~/composables/stores/useInstanceStore";
 import { useUserInfoStore } from "~/composables/stores/useUserStore";
+import type { AdminEngine } from "~/utils/types";
 
-definePageMeta({
-	layout: "dashboard",
-});
-
-useSeoMeta({
-	title: "Dashboard | ProjectName",
-	description: "Overview of your account",
-});
+definePageMeta({ layout: "dashboard" });
+useSeoMeta({ title: "Dashboard | X-Ray" });
 
 const userInfoStore = useUserInfoStore();
 const user = await userInfoStore.use();
 if (!userInfoStore.isValid(user)) {
 	throw createError({ statusCode: 401, statusMessage: "Not authenticated" });
 }
-
+const instance = await useInstanceStore().use();
 const isAdmin = computed(() => user.value.role === "admin");
 
-// Example data for the stat cards — replace with your app's own numbers.
-const { data: apiKeys, loading: loadingApiKeys } = await useAPILazyAsyncData(
-	"dashboard-apikeys",
-	async () => {
-		const res = await useAPI((api) => api.getAccountApikeys({}));
-		return res.success ? res.data : [];
-	},
-);
-
-const { data: users, loading: loadingUsers } = await useAPILazyAsyncData(
-	"dashboard-admin-users",
+const { data: engines, loading: loadingEngines } = await useAPILazyAsyncData<AdminEngine[]>(
+	"dashboard-engines",
 	async () => {
 		if (!isAdmin.value) return [];
-		const res = await useAPI((api) => api.getAdminUsers({}));
+		const res = await useAPI((api) => api.getAdminEngines({}));
 		return res.success ? res.data : [];
 	},
 );
 
-const stats = computed(() => [
-	{
-		label: "API Keys",
-		value: loadingApiKeys.value ? "…" : (apiKeys.value?.length ?? 0),
-		icon: "i-lucide-key",
-		color: "text-primary-400",
-	},
-	{
-		label: "Member since",
-		value: formatDate(user.value.created_at),
-		icon: "i-lucide-calendar",
-		color: "text-emerald-400",
-	},
-	...(isAdmin.value
-		? [
-				{
-					label: "Users",
-					value: loadingUsers.value ? "…" : (users.value?.length ?? 0),
-					icon: "i-lucide-users",
-					color: "text-amber-400",
-				},
-			]
-		: []),
-]);
+const engineStats = computed(() => {
+	const list = (engines.value ?? []).filter((e) => e.enabled);
+	return {
+		enabled: list.length,
+		healthy: list.filter(
+			(e) => !e.health.suspended_until && e.health.consecutive_failures === 0 && !e.load_error,
+		).length,
+		problems: list.filter(
+			(e) => e.health.suspended_until || e.health.consecutive_failures > 0 || e.load_error,
+		),
+	};
+});
 
 const quickActions = computed(() => [
 	{
-		label: "Edit Profile",
-		description: "Update your name and email",
-		icon: "i-lucide-user",
-		to: "/dashboard/settings",
-		iconClass: "bg-primary/10 text-primary-400",
-		hoverClass: "hover:border-primary/50",
+		label: "Search preferences",
+		description: "Language, safe search, AI answers",
+		icon: "i-lucide-sliders-horizontal",
+		to: "/dashboard/preferences",
 	},
 	{
-		label: "Create API Key",
-		description: "Access the API from scripts",
+		label: "My bangs",
+		description: "Personal !shortcuts",
+		icon: "i-lucide-zap",
+		to: "/dashboard/bangs",
+	},
+	{
+		label: "API keys",
+		description: "SearXNG API & scripts",
 		icon: "i-lucide-key",
-		to: "/dashboard/apikeys/new",
-		iconClass: "bg-emerald-500/10 text-emerald-400",
-		hoverClass: "hover:border-emerald-500/50",
+		to: "/dashboard/apikeys",
 	},
 	...(isAdmin.value
 		? [
 				{
-					label: "Manage Users",
-					description: "Create and edit accounts",
-					icon: "i-lucide-users",
-					to: "/dashboard/admin/users",
-					iconClass: "bg-amber-500/10 text-amber-400",
-					hoverClass: "hover:border-amber-500/50",
+					label: "Engines",
+					description: "Backends and health",
+					icon: "i-lucide-radar",
+					to: "/dashboard/admin/engines",
+				},
+				{
+					label: "Proxies",
+					description: "Outbound routing",
+					icon: "i-lucide-route",
+					to: "/dashboard/admin/proxies",
+				},
+				{
+					label: "Settings",
+					description: "Access, AI, defaults",
+					icon: "i-lucide-settings",
+					to: "/dashboard/admin/settings",
 				},
 			]
 		: []),
@@ -96,48 +83,28 @@ const quickActions = computed(() => [
 <template>
 	<UDashboardPanel>
 		<template #header>
-			<DashboardPageHeader title="Dashboard" icon="i-lucide-layout-dashboard" />
+			<DashboardPageHeader title="Overview" icon="i-lucide-layout-dashboard" />
 		</template>
 
 		<template #body>
 			<DashboardPageBody>
-				<!-- Welcome -->
-				<div class="flex items-center justify-between">
+				<div class="flex flex-wrap items-center justify-between gap-4">
 					<div>
-						<h1 class="text-2xl font-bold">
-							Welcome back, {{ user.display_name || user.username }}
-						</h1>
-						<p class="mt-1 text-slate-400">Here's an overview of your account.</p>
+						<h1 class="text-2xl font-bold">Hi, {{ user.display_name || user.username }}</h1>
+						<p class="mt-1 text-slate-400">
+							{{ instance?.name ?? "X-Ray" }} ·
+							{{ instance?.search_access === "public" ? "open to everyone" : "private instance" }}
+						</p>
 					</div>
-					<UBadge v-if="isAdmin" color="primary" variant="soft" size="lg" icon="i-lucide-shield">
-						Admin
-					</UBadge>
+					<UButton to="/" label="Search" icon="i-lucide-search" color="primary" size="lg" />
 				</div>
 
-				<!-- Stats -->
 				<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-					<UCard v-for="stat in stats" :key="stat.label" class="border-slate-800 bg-slate-900/60">
-						<div class="flex items-center gap-4">
-							<div class="flex h-12 w-12 items-center justify-center rounded-lg bg-slate-800">
-								<UIcon :name="stat.icon" :class="['text-xl', stat.color]" />
-							</div>
-							<div>
-								<p class="text-2xl font-bold">{{ stat.value }}</p>
-								<p class="text-sm text-slate-400">{{ stat.label }}</p>
-							</div>
-						</div>
-					</UCard>
-				</div>
-
-				<!-- Quick actions -->
-				<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-					<NuxtLink v-for="action in quickActions" :key="action.label" :to="action.to">
-						<UCard :class="['border-slate-800 bg-slate-900/60 transition', action.hoverClass]">
+					<NuxtLink v-for="action in quickActions" :key="action.to" :to="action.to">
+						<UCard class="h-full border-slate-800 bg-slate-900/60 transition hover:border-primary/40">
 							<div class="flex items-center gap-3">
-								<div
-									:class="['flex h-10 w-10 items-center justify-center rounded-lg', action.iconClass]"
-								>
-									<UIcon :name="action.icon" />
+								<div class="flex size-10 items-center justify-center rounded-lg bg-primary/10">
+									<UIcon :name="action.icon" class="size-5 text-primary" />
 								</div>
 								<div>
 									<p class="font-semibold">{{ action.label }}</p>
@@ -147,6 +114,52 @@ const quickActions = computed(() => [
 						</UCard>
 					</NuxtLink>
 				</div>
+
+				<UCard v-if="isAdmin" class="border-slate-800 bg-slate-900/60">
+					<template #header>
+						<div class="flex items-center justify-between">
+							<div class="flex items-center gap-2">
+								<UIcon name="i-lucide-activity" class="size-5 text-primary" />
+								<h2 class="font-semibold">Engine health</h2>
+							</div>
+							<UButton to="/dashboard/admin/engines" label="Manage" size="sm" color="neutral" variant="ghost" trailing-icon="i-lucide-arrow-right" />
+						</div>
+					</template>
+
+					<div v-if="loadingEngines" class="flex justify-center py-6">
+						<UIcon name="i-lucide-loader-2" class="size-6 animate-spin text-slate-500" />
+					</div>
+					<div v-else class="space-y-4">
+						<div class="flex flex-wrap gap-8">
+							<div>
+								<p class="text-3xl font-bold">{{ engineStats.enabled }}</p>
+								<p class="text-sm text-slate-400">Enabled engines</p>
+							</div>
+							<div>
+								<p class="text-3xl font-bold text-emerald-400">{{ engineStats.healthy }}</p>
+								<p class="text-sm text-slate-400">Healthy</p>
+							</div>
+							<div>
+								<p class="text-3xl font-bold" :class="engineStats.problems.length ? 'text-amber-400' : 'text-slate-500'">
+									{{ engineStats.problems.length }}
+								</p>
+								<p class="text-sm text-slate-400">Need attention</p>
+							</div>
+						</div>
+						<ul v-if="engineStats.problems.length" class="divide-y divide-slate-800 rounded-lg border border-slate-800">
+							<li v-for="engine in engineStats.problems" :key="engine.id" class="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+								<span class="font-medium">{{ engine.name }}</span>
+								<span class="truncate text-slate-400">
+									{{ engine.load_error ?? engine.health.last_error }}
+									<template v-if="engine.health.suspended_until">
+										· suspended until {{ new Date(engine.health.suspended_until).toLocaleTimeString() }}
+									</template>
+								</span>
+							</li>
+						</ul>
+						<p v-else class="text-sm text-slate-400">All engines answered their last requests.</p>
+					</div>
+				</UCard>
 			</DashboardPageBody>
 		</template>
 	</UDashboardPanel>

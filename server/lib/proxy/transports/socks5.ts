@@ -32,7 +32,7 @@ export class Socks5Transport extends ProxyTransport<z.infer<typeof Settings>> {
 	});
 
 	async fetch(url: string, request: ProxyTransport.Request = {}) {
-		return fetch(url, {
+		const res = await fetch(url, {
 			method: request.method ?? "GET",
 			headers: request.headers,
 			body: request.body,
@@ -40,6 +40,10 @@ export class Socks5Transport extends ProxyTransport<z.infer<typeof Settings>> {
 			signal: request.signal,
 			proxy: await this.bridge.getProxyUrl(),
 		});
+		// Surface tunnel failures as errors so the ProxyManager can fail over.
+		const bridgeError = res.headers.get(SocksBridge.ERROR_HEADER);
+		if (bridgeError) throw new Error(`SOCKS5 proxy failed: ${decodeURIComponent(bridgeError)}`);
+		return res;
 	}
 
 	override async close() {

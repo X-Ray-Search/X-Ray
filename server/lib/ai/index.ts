@@ -16,11 +16,20 @@ export class AIService {
 		now = new Date(),
 	) {
 		const context = results
-			.map((r, i) => `[${i + 1}] ${r.title}\nURL: ${r.url}${r.content ? `\n${r.content.slice(0, 700)}` : ""}`)
+			.map(
+				(r, i) =>
+					`[${i + 1}] ${r.title}\nURL: ${r.url}${r.content ? `\n${r.content.slice(0, 700)}` : ""}`,
+			)
 			.join("\n\n");
 		return [
-			{ role: "system" as const, content: `${config.system_prompt}\nToday's date: ${now.toISOString().slice(0, 10)}.` },
-			{ role: "user" as const, content: `Query: ${query}\n\nSearch results:\n${context || "(no results)"}` },
+			{
+				role: "system" as const,
+				content: `${config.system_prompt}\nToday's date: ${now.toISOString().slice(0, 10)}.`,
+			},
+			{
+				role: "user" as const,
+				content: `Query: ${query}\n\nSearch results:\n${context || "(no results)"}`,
+			},
 		];
 	}
 
@@ -63,7 +72,9 @@ export class AIService {
 		});
 		if (!res.ok) {
 			const body = await res.text().catch(() => "");
-			throw new AIService.AIError(`AI endpoint returned HTTP ${res.status}${body ? `: ${body.slice(0, 300)}` : ""}`);
+			throw new AIService.AIError(
+				`AI endpoint returned HTTP ${res.status}${body ? `: ${body.slice(0, 300)}` : ""}`,
+			);
 		}
 		return res;
 	}
@@ -117,7 +128,8 @@ export class AIService {
 		if (payload === "[DONE]") return null;
 		try {
 			const data = JSON.parse(payload);
-			if (data.error) throw new AIService.AIError(data.error.message ?? "AI endpoint reported an error");
+			if (data.error)
+				throw new AIService.AIError(data.error.message ?? "AI endpoint reported an error");
 			return data.choices?.[0]?.delta?.content ?? "";
 		} catch (err) {
 			if (err instanceof AIService.AIError) throw err;
@@ -147,11 +159,16 @@ export class AIService {
 		});
 		if (!res.ok) throw new AIService.AIError(`AI endpoint returned HTTP ${res.status}`);
 		const data = (await res.json()) as { data?: Array<{ id?: string }> };
-		return (data.data ?? []).map((m) => m.id).filter((id): id is string => typeof id === "string").sort();
+		return (data.data ?? [])
+			.map((m) => m.id)
+			.filter((id): id is string => typeof id === "string")
+			.sort();
 	}
 
 	/** Send a trivial prompt to verify URL, key and model. */
-	static async test(config: SettingsModels.AIConfig): Promise<{ ok: boolean; latency_ms: number; reply: string | null; error: string | null }> {
+	static async test(
+		config: SettingsModels.AIConfig,
+	): Promise<{ ok: boolean; latency_ms: number; reply: string | null; error: string | null }> {
 		const started = performance.now();
 		try {
 			const res = await this.request(
@@ -167,7 +184,12 @@ export class AIService {
 				error: null,
 			};
 		} catch (err) {
-			return { ok: false, latency_ms: Math.round(performance.now() - started), reply: null, error: (err as Error).message };
+			return {
+				ok: false,
+				latency_ms: Math.round(performance.now() - started),
+				reply: null,
+				error: (err as Error).message,
+			};
 		}
 	}
 }

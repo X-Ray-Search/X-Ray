@@ -1,8 +1,8 @@
-import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
+import nodemailer from "nodemailer";
 import { ConfigHandler } from "../../utils/config";
-import { Logger } from "../../utils/logger";
 import { AppConstants } from "../../utils/constants";
+import { Logger } from "../../utils/logger";
 
 export interface CapturedEmail {
 	from: string;

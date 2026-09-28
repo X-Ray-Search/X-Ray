@@ -3,7 +3,13 @@ import net from "net";
 
 /** Network helpers for outbound fetches of user-influenced URLs (SSRF protection). */
 export class NetUtils {
-	private static readonly BLOCKED_HOST_SUFFIXES = [".local", ".localhost", ".internal", ".lan", ".home.arpa"];
+	private static readonly BLOCKED_HOST_SUFFIXES = [
+		".local",
+		".localhost",
+		".internal",
+		".lan",
+		".home.arpa",
+	];
 
 	/** True for loopback, private, link-local, CGNAT and other non-public addresses. */
 	static isPrivateIP(ip: string): boolean {

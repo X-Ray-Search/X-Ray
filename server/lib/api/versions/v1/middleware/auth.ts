@@ -8,7 +8,12 @@ import { AuthHandler } from "../../../utils/authHandler";
  * Paths that stay reachable with a missing, stale or invalid token — the caller is treated as
  * unauthenticated and the route decides (login/reset, public instance info, signed media).
  */
-const TOLERANT_PREFIXES = ["/v1/auth/login", "/v1/auth/reset-password", "/v1/instance", "/v1/proxy/"];
+const TOLERANT_PREFIXES = [
+	"/v1/auth/login",
+	"/v1/auth/reset-password",
+	"/v1/instance",
+	"/v1/proxy/",
+];
 
 /**
  * Browser-initiated GETs that cannot send an Authorization header (OpenSearch suggestions from
@@ -27,7 +32,9 @@ export const authMiddlewareV1 = createMiddleware(async (c, next) => {
 	const path = appPath(c.req.path);
 	const tolerant = TOLERANT_PREFIXES.some((prefix) => path.startsWith(prefix));
 	const unauthenticated = async () => {
-		AuthHandler.AuthContext.set(c, { type: "unauthenticated" } satisfies AuthHandler.UnauthenticatedAuthContext);
+		AuthHandler.AuthContext.set(c, {
+			type: "unauthenticated",
+		} satisfies AuthHandler.UnauthenticatedAuthContext);
 		return await next();
 	};
 

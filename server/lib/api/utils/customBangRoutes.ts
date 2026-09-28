@@ -41,7 +41,8 @@ export function registerCustomBangRoutes(
 		async (c) => {
 			const body = c.req.valid("json") as CustomBangModels.Body;
 			const result = await CustomBangs.create(options.owner(c), body);
-			if (result === "conflict") return APIResponse.conflict(c, "A bang with this trigger already exists");
+			if (result === "conflict")
+				return APIResponse.conflict(c, "A bang with this trigger already exists");
 			return APIResponse.created(c, "Bang created", result);
 		},
 	);
@@ -64,7 +65,8 @@ export function registerCustomBangRoutes(
 			const body = c.req.valid("json") as CustomBangModels.Body;
 			const result = await CustomBangs.update(options.owner(c), bangID, body);
 			if (result === "not_found") return APIResponse.notFound(c, "Bang not found");
-			if (result === "conflict") return APIResponse.conflict(c, "A bang with this trigger already exists");
+			if (result === "conflict")
+				return APIResponse.conflict(c, "A bang with this trigger already exists");
 			return APIResponse.success(c, "Bang updated", result);
 		},
 	);
@@ -82,7 +84,8 @@ export function registerCustomBangRoutes(
 		zValidator("param", CustomBangModels.Params),
 		async (c) => {
 			const { bangID } = c.req.valid("param") as CustomBangModels.Params;
-			if (!(await CustomBangs.delete(options.owner(c), bangID))) return APIResponse.notFound(c, "Bang not found");
+			if (!(await CustomBangs.delete(options.owner(c), bangID)))
+				return APIResponse.notFound(c, "Bang not found");
 			return APIResponse.successNoData(c, "Bang deleted");
 		},
 	);

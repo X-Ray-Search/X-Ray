@@ -1,33 +1,37 @@
 /// <reference types="bun-types" />
 
+import { afterAll, beforeAll } from "bun:test";
 import fs from "fs/promises";
 import path from "path";
-import { afterAll, beforeAll } from "bun:test";
-import { ConfigHandler, type ENVConfigLike } from "../../server/lib/utils/config";
-import { DB } from "../../server/lib/db";
 import { API } from "../../server/lib/api";
+import { DB } from "../../server/lib/db";
 import { Utils } from "../../server/lib/utils";
+import { ConfigHandler, type ENVConfigLike } from "../../server/lib/utils/config";
 
 function setTestEnv(rootDir: string) {
 	const envVars = {
-		APPPREFIX_LOG_LEVEL: "debug",
+		XRAY_LOG_LEVEL: "debug",
 
-		APPPREFIX_API_DISABLE_DOCS: false,
+		XRAY_API_DISABLE_DOCS: false,
 
-		APPPREFIX_DB_PATH: path.join(rootDir, "db.sqlite"),
-		APPPREFIX_DB_AUTO_MIGRATE: true,
+		XRAY_DB_PATH: path.join(rootDir, "db.sqlite"),
+		XRAY_DB_AUTO_MIGRATE: true,
 
-		APPPREFIX_LOG_DIR: path.join(rootDir, "logs"),
-		APPPREFIX_CONFIG_BASE_DIR: rootDir,
+		XRAY_LOG_DIR: path.join(rootDir, "logs"),
+		XRAY_CONFIG_BASE_DIR: rootDir,
 
-		APPPREFIX_APP_URL: "http://localhost:12520",
+		XRAY_APP_URL: "http://localhost:12418",
 
-		APPPREFIX_SMTP_HOST: "127.0.0.1",
-		APPPREFIX_SMTP_PORT: 12587,
-		APPPREFIX_SMTP_USERNAME: "",
-		APPPREFIX_SMTP_PASSWORD: "",
-		APPPREFIX_SMTP_FROM: '"App Test" <test@app.local>',
-		APPPREFIX_SMTP_SECURE: false,
+		XRAY_TRUST_PROXY: false,
+		XRAY_SEARCH_CACHE_TTL: 300,
+		XRAY_BANGS_DISABLE_AUTO_FETCH: true,
+
+		XRAY_SMTP_HOST: "127.0.0.1",
+		XRAY_SMTP_PORT: 12587,
+		XRAY_SMTP_USERNAME: "",
+		XRAY_SMTP_PASSWORD: "",
+		XRAY_SMTP_FROM: '"App Test" <test@app.local>',
+		XRAY_SMTP_SECURE: false,
 	} as const satisfies ENVConfigLike;
 
 	for (const [key, value] of Object.entries(envVars)) {

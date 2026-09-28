@@ -28,7 +28,10 @@ router.get(
 		tags: [DOCS_TAGS.ACCOUNT_PREFERENCES],
 
 		responses: APIResponseSpec.describeBasic(
-			APIResponseSpec.success("Preferences retrieved successfully", AccountPreferencesModel.GetAll.Response),
+			APIResponseSpec.success(
+				"Preferences retrieved successfully",
+				AccountPreferencesModel.GetAll.Response,
+			),
 		),
 	}),
 
@@ -55,7 +58,11 @@ router.get(
 
 	async (c) => {
 		const authContext = AuthHandler.AuthContext.getAsSession(c);
-		return APIResponse.success(c, "Search preferences retrieved", await searchPreferences(authContext.user_id));
+		return APIResponse.success(
+			c,
+			"Search preferences retrieved",
+			await searchPreferences(authContext.user_id),
+		);
 	},
 );
 
@@ -79,6 +86,10 @@ router.put(
 		const authContext = AuthHandler.AuthContext.getAsSession(c);
 		const body = c.req.valid("json") as AccountPreferencesModel.Search.Body;
 		await SettingsHandler.setUserOverrides(authContext.user_id, body);
-		return APIResponse.success(c, "Search preferences updated", await searchPreferences(authContext.user_id));
+		return APIResponse.success(
+			c,
+			"Search preferences updated",
+			await searchPreferences(authContext.user_id),
+		);
 	},
 );

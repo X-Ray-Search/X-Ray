@@ -2,7 +2,8 @@ import { parse as parseHTML } from "node-html-parser";
 
 /** Small, dependency-free helpers shared by the engines and the aggregator. */
 export class SearchUtils {
-	private static readonly TRACKING_PARAMS = /^(utm_[a-z]+|fbclid|gclid|dclid|msclkid|mc_[a-z]+|ref_src|igshid|_hsenc|_hsmi|yclid|srsltid)$/i;
+	private static readonly TRACKING_PARAMS =
+		/^(utm_[a-z]+|fbclid|gclid|dclid|msclkid|mc_[a-z]+|ref_src|igshid|_hsenc|_hsmi|yclid|srsltid)$/i;
 
 	/** Collapse whitespace and trim. */
 	static cleanText(text: string | undefined | null): string {
@@ -42,7 +43,9 @@ export class SearchUtils {
 		const url = this.safeURL(this.cleanURL(value));
 		if (!url) return value.trim().toLowerCase();
 		const host = url.hostname.toLowerCase().replace(/^(www|m|mobile)\./, "");
-		const path = decodeURIComponent(url.pathname).replace(/\/+$/, "").replace(/\/index\.(html?|php)$/, "");
+		const path = decodeURIComponent(url.pathname)
+			.replace(/\/+$/, "")
+			.replace(/\/index\.(html?|php)$/, "");
 		url.searchParams.sort();
 		const query = url.searchParams.toString();
 		return `${host}${path}${query ? `?${query}` : ""}`;
@@ -61,20 +64,19 @@ export class SearchUtils {
 		if (!match) return undefined;
 		const value = Number(match[1]);
 		const unit = match[2]!;
-		const ms =
-			unit.startsWith("s")
-				? 1000
-				: unit === "m" || unit.startsWith("min")
-					? 60_000
-					: unit.startsWith("h")
-						? 3_600_000
-						: unit.startsWith("d")
-							? 86_400_000
-							: unit.startsWith("w")
-								? 7 * 86_400_000
-								: unit.startsWith("mo")
-									? 30 * 86_400_000
-									: 365 * 86_400_000;
+		const ms = unit.startsWith("s")
+			? 1000
+			: unit === "m" || unit.startsWith("min")
+				? 60_000
+				: unit.startsWith("h")
+					? 3_600_000
+					: unit.startsWith("d")
+						? 86_400_000
+						: unit.startsWith("w")
+							? 7 * 86_400_000
+							: unit.startsWith("mo")
+								? 30 * 86_400_000
+								: 365 * 86_400_000;
 		return now - value * ms;
 	}
 

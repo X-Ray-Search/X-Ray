@@ -20,14 +20,33 @@ export class BangService {
 	private static loading: Promise<void> | null = null;
 
 	static readonly INTERNAL: readonly BangService.Entry[] = [
-		...["i", "img", "images"].map((trigger) => BangService.internal(trigger, "X-Ray Images", "images")),
+		...["i", "img", "images"].map((trigger) =>
+			BangService.internal(trigger, "X-Ray Images", "images"),
+		),
 		...["n", "news"].map((trigger) => BangService.internal(trigger, "X-Ray News", "news")),
-		...["v", "vid", "videos"].map((trigger) => BangService.internal(trigger, "X-Ray Videos", "videos")),
+		...["v", "vid", "videos"].map((trigger) =>
+			BangService.internal(trigger, "X-Ray Videos", "videos"),
+		),
 	];
-	private static readonly internalByTrigger = new Map(BangService.INTERNAL.map((e) => [e.trigger, e]));
+	private static readonly internalByTrigger = new Map(
+		BangService.INTERNAL.map((e) => [e.trigger, e]),
+	);
 
-	private static internal(trigger: string, name: string, category: SearchTypes.Category): BangService.Entry {
-		return { trigger, name, domain: "", urlTemplate: "", category: null, relevance: 0, source: "internal", switchCategory: category };
+	private static internal(
+		trigger: string,
+		name: string,
+		category: SearchTypes.Category,
+	): BangService.Entry {
+		return {
+			trigger,
+			name,
+			domain: "",
+			urlTemplate: "",
+			category: null,
+			relevance: 0,
+			source: "internal",
+			switchCategory: category,
+		};
 	}
 
 	// --------------------------------------------------------------------------- loading
@@ -48,7 +67,9 @@ export class BangService {
 				source: "ddg" as const,
 			})),
 		);
-		this.instanceByTrigger = new Map(instanceRows.map((row) => [row.trigger, this.fromCustom(row, "instance")]));
+		this.instanceByTrigger = new Map(
+			instanceRows.map((row) => [row.trigger, this.fromCustom(row, "instance")]),
+		);
 		this.userCache.clear();
 		this.loaded = true;
 	}
@@ -62,7 +83,9 @@ export class BangService {
 	}
 
 	static setDDGDataset(entries: BangService.Entry[]) {
-		this.ddgSorted = [...entries].sort((a, b) => (a.trigger < b.trigger ? -1 : a.trigger > b.trigger ? 1 : 0));
+		this.ddgSorted = [...entries].sort((a, b) =>
+			a.trigger < b.trigger ? -1 : a.trigger > b.trigger ? 1 : 0,
+		);
 		this.ddgByTrigger = new Map(this.ddgSorted.map((entry) => [entry.trigger, entry]));
 	}
 
@@ -75,14 +98,24 @@ export class BangService {
 	}
 
 	static async reloadInstanceBangs() {
-		const rows = await DB.instance().select().from(DB.Tables.bangs).where(isNull(DB.Tables.bangs.owner_user_id)).all();
-		this.instanceByTrigger = new Map(rows.map((row) => [row.trigger, this.fromCustom(row, "instance")]));
+		const rows = await DB.instance()
+			.select()
+			.from(DB.Tables.bangs)
+			.where(isNull(DB.Tables.bangs.owner_user_id))
+			.all();
+		this.instanceByTrigger = new Map(
+			rows.map((row) => [row.trigger, this.fromCustom(row, "instance")]),
+		);
 	}
 
 	private static async userBangs(userID: number) {
 		let cached = this.userCache.get(userID);
 		if (!cached) {
-			const rows = await DB.instance().select().from(DB.Tables.bangs).where(eq(DB.Tables.bangs.owner_user_id, userID)).all();
+			const rows = await DB.instance()
+				.select()
+				.from(DB.Tables.bangs)
+				.where(eq(DB.Tables.bangs.owner_user_id, userID))
+				.all();
 			cached = new Map(rows.map((row) => [row.trigger, this.fromCustom(row, "user")]));
 			this.userCache.set(userID, cached);
 			if (this.userCache.size > 5000) {
@@ -121,7 +154,10 @@ export class BangService {
 		return { trigger, query };
 	}
 
-	static async lookup(trigger: string, options: BangService.Options): Promise<BangService.Entry | null> {
+	static async lookup(
+		trigger: string,
+		options: BangService.Options,
+	): Promise<BangService.Entry | null> {
 		await this.ensureLoaded();
 		if (options.userID !== null) {
 			const personal = (await this.userBangs(options.userID)).get(trigger);
@@ -135,7 +171,10 @@ export class BangService {
 		);
 	}
 
-	static async resolve(rawQuery: string, options: BangService.Options): Promise<BangService.Resolution | null> {
+	static async resolve(
+		rawQuery: string,
+		options: BangService.Options,
+	): Promise<BangService.Resolution | null> {
 		// Try every bang-looking token, so `c++ !w` and `!w c++` both work.
 		const tokens = rawQuery.trim().split(/\s+/);
 		for (let i = 0; i < tokens.length; i++) {
@@ -175,7 +214,11 @@ export class BangService {
 
 	// ------------------------------------------------------------------------- suggestions
 
-	static async suggest(prefix: string, options: BangService.Options, limit = 8): Promise<BangService.Entry[]> {
+	static async suggest(
+		prefix: string,
+		options: BangService.Options,
+		limit = 8,
+	): Promise<BangService.Entry[]> {
 		await this.ensureLoaded();
 		const needle = prefix.replace(/^!/, "").toLowerCase();
 		const seen = new Set<string>();
@@ -183,7 +226,12 @@ export class BangService {
 		const take = (entries: Iterable<BangService.Entry>, max = Number.POSITIVE_INFINITY) => {
 			const matches = [...entries]
 				.filter((e) => e.trigger.startsWith(needle) && !seen.has(e.trigger))
-				.sort((a, b) => Number(b.trigger === needle) - Number(a.trigger === needle) || b.relevance - a.relevance || a.trigger.length - b.trigger.length)
+				.sort(
+					(a, b) =>
+						Number(b.trigger === needle) - Number(a.trigger === needle) ||
+						b.relevance - a.relevance ||
+						a.trigger.length - b.trigger.length,
+				)
 				.slice(0, max);
 			for (const entry of matches) {
 				seen.add(entry.trigger);
@@ -211,7 +259,11 @@ export class BangService {
 			if (this.ddgSorted[mid]!.trigger < prefix) low = mid + 1;
 			else high = mid;
 		}
-		for (let i = low; i < this.ddgSorted.length && this.ddgSorted[i]!.trigger.startsWith(prefix); i++) {
+		for (
+			let i = low;
+			i < this.ddgSorted.length && this.ddgSorted[i]!.trigger.startsWith(prefix);
+			i++
+		) {
 			yield this.ddgSorted[i]!;
 		}
 	}

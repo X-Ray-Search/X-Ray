@@ -5,6 +5,7 @@ import { SearchEngineManager } from "../../search/manager";
 import { SearchService } from "../../search/service";
 import { type SearchModels, SearchTypes } from "../../search/types";
 import { SettingsHandler } from "../../settings";
+import { ConfigHandler } from "../../utils/config";
 import { AppConstants } from "../../utils/constants";
 import { AuthHandler } from "../utils/authHandler";
 import { RateLimiter } from "../utils/rateLimiter";
@@ -39,7 +40,8 @@ async function params(c: Context): Promise<Record<string, string>> {
 				}
 			} else {
 				const form = await c.req.parseBody();
-				for (const [key, value] of Object.entries(form)) if (typeof value === "string") values[key] = value;
+				for (const [key, value] of Object.entries(form))
+					if (typeof value === "string") values[key] = value;
 			}
 		} catch {
 			// Ignore malformed bodies — missing params are reported below.
@@ -50,11 +52,14 @@ async function params(c: Context): Promise<Record<string, string>> {
 
 const searxngAuth = createMiddleware<{ Variables: { userID: number | null } }>(async (c, next) => {
 	const settings = await SettingsHandler.getInstance();
-	if (!settings.searxng_api_enabled) return error(c, 404, "The SearXNG API is disabled on this instance");
+	if (!settings.searxng_api_enabled)
+		return error(c, 404, "The SearXNG API is disabled on this instance");
 
 	const bearer = c.req.header("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
 	const key =
-		bearer ?? c.req.header("x-api-key") ?? KEY_QUERY_PARAMS.map((name) => c.req.query(name)).find((v) => !!v);
+		bearer ??
+		c.req.header("x-api-key") ??
+		KEY_QUERY_PARAMS.map((name) => c.req.query(name)).find((v) => !!v);
 
 	if (key) {
 		const authContext = await AuthHandler.getAuthContext(key);
@@ -66,10 +71,17 @@ const searxngAuth = createMiddleware<{ Variables: { userID: number | null } }>(a
 	}
 
 	if (settings.searxng_api_require_key || settings.search_access !== "public") {
-		return error(c, 401, "An X-Ray API key is required (Authorization: Bearer <key>, X-API-Key or ?api_key=)");
+		return error(
+			c,
+			401,
+			"An X-Ray API key is required (Authorization: Bearer <key>, X-API-Key or ?api_key=)",
+		);
 	}
 
-	const limit = RateLimiter.hit(`searxng:${RequestInfo.clientIP(c) ?? "unknown"}`, settings.public_rate_limit_per_minute);
+	const limit = RateLimiter.hit(
+		`searxng:${RequestInfo.clientIP(c) ?? "unknown"}`,
+		settings.public_rate_limit_per_minute,
+	);
 	if (!limit.allowed) {
 		c.header("Retry-After", String(limit.retryAfterSeconds));
 		return error(c, 429, "Too many requests");
@@ -91,29 +103,46 @@ async function handleSearch(c: Context<{ Variables: { userID: number | null } }>
 	if (q.length > 500) return error(c, 400, "Query too long");
 
 	const format = (input.format ?? "json").toLowerCase();
-	if (!["json", "csv", "rss"].includes(format)) return error(c, 400, "Supported formats: json, csv, rss");
+	if (!["json", "csv", "rss"].includes(format))
+		return error(c, 400, "Supported formats: json, csv, rss");
 
 	const categories = (input.categories ?? input.category ?? "general")
 		.split(",")
 		.map((cat) => cat.trim().toLowerCase())
 		.map((cat) => (cat === "image" ? "images" : cat === "video" ? "videos" : cat))
-		.filter((cat): cat is SearchTypes.Category => (SearchTypes.Categories as readonly string[]).includes(cat));
+		.filter((cat): cat is SearchTypes.Category =>
+			(SearchTypes.Categories as readonly string[]).includes(cat),
+		);
 	if (!categories.length) categories.push("general");
 
 	const page = Math.min(Math.max(Number.parseInt(input.pageno ?? "1", 10) || 1, 1), 20);
 	const language = input.language && input.language !== "auto" ? input.language : undefined;
-	const safesearch = ["0", "1", "2"].includes(input.safesearch ?? "") ? (Number(input.safesearch) as SearchTypes.SafeSearch) : undefined;
+	const safesearch = ["0", "1", "2"].includes(input.safesearch ?? "")
+		? (Number(input.safesearch) as SearchTypes.SafeSearch)
+		: undefined;
 	const timeRange = (SearchTypes.TimeRanges as readonly string[]).includes(input.time_range ?? "")
 		? (input.time_range as SearchTypes.TimeRange)
 		: null;
-	const engines = input.engines?.split(",").map((e) => e.trim()).filter(Boolean);
+	const engines = input.engines
+		?.split(",")
+		.map((e) => e.trim())
+		.filter(Boolean);
 
 	const userID = c.get("userID");
 	const preferences = await SettingsHandler.getEffectivePreferences(userID);
 	const responses = await Promise.all(
 		categories.map((category) =>
 			SearchService.search(
-				{ query: q, category, page, language: language && /^(all|[a-z]{2,3}(-[A-Za-z]{2,4})?)$/.test(language) ? language : undefined, safesearch, timeRange, engines },
+				{
+					query: q,
+					category,
+					page,
+					language:
+						language && /^(all|[a-z]{2,3}(-[A-Za-z]{2,4})?)$/.test(language) ? language : undefined,
+					safesearch,
+					timeRange,
+					engines,
+				},
 				{
 					userID,
 					preferences,
@@ -127,9 +156,12 @@ async function handleSearch(c: Context<{ Variables: { userID: number | null } }>
 	);
 
 	const results = responses.flatMap((r) => r.results);
-	const engineNames = new Map((await SearchEngineManager.all()).map((e) => [e.config.slug, e.config.name]));
+	const engineNames = new Map(
+		(await SearchEngineManager.all()).map((e) => [e.config.slug, e.config.name]),
+	);
 
-	if (format === "csv") return c.body(toCSV(results), 200, { "Content-Type": "text/csv; charset=utf-8" });
+	if (format === "csv")
+		return c.body(toCSV(results), 200, { "Content-Type": "text/csv; charset=utf-8" });
 	if (format === "rss") {
 		return c.body(toRSS(q, results), 200, { "Content-Type": "application/rss+xml; charset=utf-8" });
 	}
@@ -169,7 +201,11 @@ searxngRouter.post("/search", handleSearch);
 searxngRouter.get("/autocompleter", async (c) => {
 	const q = c.req.query("q") ?? "";
 	const preferences = await SettingsHandler.getEffectivePreferences(c.get("userID"));
-	const suggestions = await AutocompleteService.suggest(q, preferences.autocomplete, preferences.language);
+	const suggestions = await AutocompleteService.suggest(
+		q,
+		preferences.autocomplete,
+		preferences.language,
+	);
 	return c.json([q, suggestions]);
 });
 
@@ -206,14 +242,26 @@ searxngRouter.get("/config", async (c) => {
 function parsedURL(url: string) {
 	try {
 		const u = new URL(url);
-		return [u.protocol.replace(/:$/, ""), u.host, u.pathname, "", u.search.replace(/^\?/, ""), u.hash.replace(/^#/, "")];
+		return [
+			u.protocol.replace(/:$/, ""),
+			u.host,
+			u.pathname,
+			"",
+			u.search.replace(/^\?/, ""),
+			u.hash.replace(/^#/, ""),
+		];
 	} catch {
 		return ["", "", "", "", "", ""];
 	}
 }
 
 function toSearXNGResult(result: SearchModels.Result) {
-	const template = { web: "default.html", news: "default.html", image: "images.html", video: "videos.html" }[result.template];
+	const template = {
+		web: "default.html",
+		news: "default.html",
+		image: "images.html",
+		video: "videos.html",
+	}[result.template];
 	return {
 		url: result.url,
 		title: result.title,
@@ -237,14 +285,16 @@ function toSearXNGResult(result: SearchModels.Result) {
 }
 
 function toCSV(results: SearchModels.Result[]) {
-	const escape = (value: string | number | null) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+	const csvCell = (value: string | number | null) => `"${String(value ?? "").replace(/"/g, '""')}"`;
 	const rows = [["title", "url", "content", "host", "engine", "score", "type"].join(",")];
 	for (const r of results) {
 		let host = "";
 		try {
 			host = new URL(r.url).host;
 		} catch {}
-		rows.push([r.title, r.url, r.content, host, r.engines.join(" "), r.score, "result"].map(escape).join(","));
+		rows.push(
+			[r.title, r.url, r.content, host, r.engines.join(" "), r.score, "result"].map(csvCell).join(","),
+		);
 	}
 	return `${rows.join("\r\n")}\r\n`;
 }
@@ -258,5 +308,5 @@ function toRSS(query: string, results: SearchModels.Result[]) {
 				`<item><title>${xml(r.title)}</title><link>${xml(r.url)}</link><description>${xml(r.content)}</description>${r.published_at ? `<pubDate>${new Date(r.published_at).toUTCString()}</pubDate>` : ""}</item>`,
 		)
 		.join("");
-	return `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/"><channel><title>${xml(`${AppConstants.APP_NAME} search: ${query}`)}</title><description>${xml(`Search results for "${query}"`)}</description><link>/search?q=${encodeURIComponent(query)}</link><opensearch:totalResults>${results.length}</opensearch:totalResults><opensearch:itemsPerPage>${results.length}</opensearch:itemsPerPage>${items}</channel></rss>`;
+	return `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/"><channel><title>${xml(`${AppConstants.APP_NAME} search: ${query}`)}</title><description>${xml(`Search results for "${query}"`)}</description><link>${xml(`${ConfigHandler.getConfig()?.APP_URL ?? ""}/search?q=${encodeURIComponent(query)}`)}</link><opensearch:totalResults>${results.length}</opensearch:totalResults><opensearch:itemsPerPage>${results.length}</opensearch:itemsPerPage>${items}</channel></rss>`;
 }

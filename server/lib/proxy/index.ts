@@ -1,9 +1,9 @@
 import { DB } from "../db";
 import { SettingsHandler } from "../settings";
 import { Logger } from "../utils/logger";
-import { ProxyTransport } from "./transport";
-import { DirectTransport } from "./transports/direct";
+import type { ProxyTransport } from "./transport";
 import { ProxyTransportRegistry } from "./transports";
+import { DirectTransport } from "./transports/direct";
 
 /**
  * Owns the live proxy transports (one per enabled `proxies` row) and routes outbound requests.
@@ -30,7 +30,10 @@ export class ProxyManager {
 			try {
 				next.set(row.id, this.instantiate(row));
 			} catch (err) {
-				Logger.warn(`Proxy '${row.name}' (#${row.id}) is invalid and was skipped:`, (err as Error).message);
+				Logger.warn(
+					`Proxy '${row.name}' (#${row.id}) is invalid and was skipped:`,
+					(err as Error).message,
+				);
 			}
 		}
 
@@ -60,9 +63,7 @@ export class ProxyManager {
 	static async resolve(proxyIds: readonly number[] = []): Promise<ProxyTransport[]> {
 		await this.ensureLoaded();
 
-		const ids = proxyIds.length
-			? proxyIds
-			: (await SettingsHandler.getInstance()).default_proxy_ids;
+		const ids = proxyIds.length ? proxyIds : (await SettingsHandler.getInstance()).default_proxy_ids;
 		if (!ids.length) return [this.direct];
 
 		const chain = ids
@@ -96,7 +97,10 @@ export class ProxyManager {
 				// A timeout/abort is the caller's decision — don't burn the other proxies on it.
 				if (request.signal?.aborted) throw err;
 				lastError = err;
-				Logger.debug(`Proxy '${transport.name}' failed for ${new URL(url).host}:`, (err as Error).message);
+				Logger.debug(
+					`Proxy '${transport.name}' failed for ${new URL(url).host}:`,
+					(err as Error).message,
+				);
 			}
 		}
 		throw lastError;

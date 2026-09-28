@@ -1,10 +1,10 @@
 import { eq } from "drizzle-orm";
+import type { Context } from "hono";
 import { DB } from "../../db";
 import type { DrizzleDB } from "../../db/utils";
-import type { Context } from "hono";
-import type { UserAccountSettings } from "./shared-models/accountData";
-import { LCrypt } from "../../utils/crypto/lcrypt";
 import { AppConstants } from "../../utils/constants";
+import { LCrypt } from "../../utils/crypto/lcrypt";
+import type { UserAccountSettings } from "./shared-models/accountData";
 
 // Opaque bearer-token auth. Token shape: `<prefix><id>:<base>`
 //   prefix — SESSION_TOKEN_PREFIX or API_KEY_PREFIX (carries the kind)
@@ -275,7 +275,7 @@ export class AuthHandler {
 		}
 
 		switch (this.getTokenType(fullToken)) {
-			case "session":
+			case "session": {
 				const session = await SessionHandler.getSession(tokenParts, tx);
 				if (!session) {
 					return null;
@@ -284,7 +284,8 @@ export class AuthHandler {
 					type: "session" as const,
 					...session,
 				};
-			case "apiKey":
+			}
+			case "apiKey": {
 				const apiKey = await APIKeyHandler.getApiKey(tokenParts, tx);
 				if (!apiKey) {
 					return null;
@@ -293,6 +294,7 @@ export class AuthHandler {
 					type: "apiKey" as const,
 					...apiKey,
 				};
+			}
 			default:
 				return null;
 		}
@@ -381,7 +383,6 @@ export namespace AuthHandler {
 
 export namespace AuthHandler.AuthContext {
 	export function get(c: Context): AuthHandler.AuthContext {
-		// @ts-ignore
 		const authContext = c.get("authContext") as AuthHandler.AuthContext | undefined;
 		if (!authContext) {
 			throw new Error("Auth context not set in context");

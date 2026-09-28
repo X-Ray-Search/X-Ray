@@ -24,7 +24,10 @@ export class SearchService {
 		this.cache.prune();
 	}
 
-	static async search(request: SearchService.Request, context: SearchService.Context): Promise<SearchModels.Response> {
+	static async search(
+		request: SearchService.Request,
+		context: SearchService.Context,
+	): Promise<SearchModels.Response> {
 		const started = performance.now();
 		const prefs = context.preferences;
 		const rawQuery = request.query.trim();
@@ -67,12 +70,18 @@ export class SearchService {
 			}
 			if (bang?.kind === "lucky") {
 				query = bang.query;
-				const page = await this.searchPage({ ...request, query, category: "general", page: 1 }, context);
+				const page = await this.searchPage(
+					{ ...request, query, category: "general", page: 1 },
+					context,
+				);
 				const first = page.outcome.results[0];
 				if (first) {
 					return empty({
 						query,
-						redirect: { url: first.url, bang: { trigger: "!", name: "Feeling lucky", source: "internal" } },
+						redirect: {
+							url: first.url,
+							bang: { trigger: "!", name: "Feeling lucky", source: "internal" },
+						},
 					});
 				}
 			}
@@ -83,7 +92,11 @@ export class SearchService {
 		}
 
 		const page = request.page ?? 1;
-		const wantInstant = prefs.instant_answers_enabled && page === 1 && category === "general" && request.instantAnswers !== false;
+		const wantInstant =
+			prefs.instant_answers_enabled &&
+			page === 1 &&
+			category === "general" &&
+			request.instantAnswers !== false;
 
 		const [pageResult, instantAnswers] = await Promise.all([
 			this.searchPage({ ...request, query, category, page }, context),
@@ -132,7 +145,9 @@ export class SearchService {
 		let engines = await SearchEngineManager.forCategory(request.category);
 		if (request.engines?.length) {
 			const wanted = new Set(request.engines.map((e) => e.toLowerCase()));
-			engines = engines.filter((e) => wanted.has(e.config.slug) || wanted.has(e.config.name.toLowerCase()));
+			engines = engines.filter(
+				(e) => wanted.has(e.config.slug) || wanted.has(e.config.name.toLowerCase()),
+			);
 		} else {
 			engines = engines.filter((e) => !prefs.disabled_engines.includes(e.config.slug));
 		}
@@ -170,7 +185,10 @@ export class SearchService {
 		return Promise.all(
 			answers.map(async (answer) =>
 				typeof answer.data.thumbnail === "string"
-					? { ...answer, data: { ...answer.data, thumbnail: await ImageProxy.sign(answer.data.thumbnail) } }
+					? {
+							...answer,
+							data: { ...answer.data, thumbnail: await ImageProxy.sign(answer.data.thumbnail) },
+						}
 					: answer,
 			),
 		);

@@ -1,5 +1,5 @@
-import { Logger } from "../utils/logger";
 import { ConfigHandler } from "../utils/config";
+import { Logger } from "../utils/logger";
 
 export class TaskUtils {
 	static getTaskLogFilePath(taskID: number): string {

@@ -6,12 +6,12 @@ Read `AGENTS.md` first. This file adds Claude-Code-specific notes.
 
 Defined in `.claude/settings.json`:
 
-- `/api-client` — regenerate the typed API client (reads `/api/docs/v1/openapi`).
-- `/db` — run Drizzle migrations.
+- `/api-client` — regenerate the typed API client (boots the API in-process, then patches).
+- `/db` — generate Drizzle migrations from `server/lib/db/schema.ts`.
 - `/verify` — typecheck + tests.
 - `/typecheck` — `bun run typecheck` (`nuxt typecheck` + `tsc`, includes `server/`).
 - `/test` — `bun test`.
-- `/dev` — start/inspect the dev setup.
+- `/dev` — start/inspect the dev setup (port 12418).
 
 ## MCP servers
 
@@ -19,27 +19,26 @@ Defined in `.claude/settings.json`:
 
 ## Backend in `server/`
 
-This is the full-stack shape: Hono lives in `server/lib/api`, mounted at `/api` by
-`server/routes/api/[...].ts`, and initialized by `server/plugins/startup.ts`. After changing a
-backend route, regenerate the client with `bun run api-client:generate`. Never hand-edit
-`app/api-client/*.gen.ts`.
+Hono lives in `server/lib/api`, mounted at `/api` by `server/routes/api/[...].ts`, initialized by
+`server/plugins/startup.ts` (DB → engines → proxies → bangs → cron → API). The search domain lives
+next to it in `server/lib/{search,proxy,bangs,instant-answers,ai,settings}`. After changing a route
+or schema, run `bun run api-client:generate`.
+
+## Verifying changes
+
+- `bun test` covers the API, engine parsers (fixtures), proxies (local SOCKS/HTTP/gateway servers),
+  the SearXNG API and admin routes — all offline.
+- `bun scripts/engine-smoke-test.ts` hits the real engines. DuckDuckGo blocks an IP for minutes
+  after a few rapid requests — don't loop it.
+- `bun run typecheck` skips `<template>` code under Bun. For UI changes, check the real app:
+  `bun run build && bun run .output/server/index.mjs` (the dev worker is unreliable on Windows
+  under Bun), then load the pages.
 
 ## Frontend conventions
 
-- Route map and access rules: see the header of `app/middleware/auth.global.ts` and the Frontend
-  section of `README.md`. The template is deliberately rich; delete unused parts instead of
-  working around them.
-- Reference components by their Nuxt auto-import names (`LayoutHeader`, `ImgAppLogo`,
-  `DashboardDataTable`, `FormDateRangePicker`, …). Don't add explicit imports that only the
-  `<template>` uses: Biome can't see template usage, reports them as unused, and an `--unsafe` fix
-  would delete them.
-- If a `<script>` binding is used as a type there and as a value in the `<template>` (e.g. a Zod
-  schema for `UForm :schema`), also reference it as a value in `<script>`
-  (`const createSchema = zPostAdminUsersBody`). Otherwise Biome's `useImportType` safe fix turns it
-  into `import type` and breaks the page at runtime.
-- In `.vue` files, Biome *warnings* about unused variables/imports are expected (template usage).
-  Biome *errors* are not.
-- `bun run typecheck` does not type-check `.vue` files under Bun: vue-tsc's TypeScript patch is
-  bypassed by Bun's module loader. Don't treat a passing typecheck as proof a page is correct.
-- Per-user stores live in `app/composables/stores/` (`useUserInfoStore`, `useOnboardingStore`).
-  Clear them on logout; the login page refreshes/clears them for the new session.
+- Reference components by their Nuxt auto-import names. Nuxt drops repeated path segments:
+  `components/search/instant/InstantAnswer.vue` is `SearchInstantAnswer`, `search/SearchBox.vue`
+  is `SearchBox`.
+- Don't add explicit imports that only the `<template>` uses (Biome reports them as unused).
+- In `.vue` files, Biome *warnings* about unused variables/imports are expected; *errors* are not.
+- Per-user stores live in `app/composables/stores/`; `useSession()` resets them on sign-in/out.

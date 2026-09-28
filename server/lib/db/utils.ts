@@ -1,6 +1,6 @@
 import { type entityKind, sql } from "drizzle-orm";
-import type { drizzle as drizzle_d1 } from "drizzle-orm/d1";
 import type { drizzle as drizzle_bun } from "drizzle-orm/bun-sqlite";
+import type { drizzle as drizzle_d1 } from "drizzle-orm/d1";
 import { BaseSQLiteDatabase, integer } from "drizzle-orm/sqlite-core";
 
 export declare class DrizzleDB extends BaseSQLiteDatabase<

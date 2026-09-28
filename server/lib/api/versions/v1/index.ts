@@ -14,7 +14,6 @@ import { router as searchRouter } from "./routes/search";
 
 const subTag = (name: string, parent: string, description: string) => ({
 	name,
-	// @ts-ignore Scalar extension
 	"x-displayName": name.split(" / ").at(-1),
 	summary: name.split(" / ").at(-1),
 	parent,
@@ -48,8 +47,12 @@ const openAPIConfig: Partial<GenerateSpecOptions> = {
 
 		servers: [{ url: "/api/v1", description: "This instance" }],
 
+		// @ts-expect-error Scalar/Redoc extension
 		"x-tagGroups": [
-			{ name: "Search", tags: [DOCS_TAGS.SEARCH, DOCS_TAGS.BANGS, DOCS_TAGS.MEDIA_PROXY, DOCS_TAGS.INSTANCE] },
+			{
+				name: "Search",
+				tags: [DOCS_TAGS.SEARCH, DOCS_TAGS.BANGS, DOCS_TAGS.MEDIA_PROXY, DOCS_TAGS.INSTANCE],
+			},
 			{
 				name: "Account & Authentication",
 				tags: [
@@ -78,15 +81,34 @@ const openAPIConfig: Partial<GenerateSpecOptions> = {
 			{ name: DOCS_TAGS.MEDIA_PROXY, description: "Privacy proxy for thumbnails and favicons" },
 			{ name: DOCS_TAGS.INSTANCE, description: "Public instance information" },
 			{ name: DOCS_TAGS.ACCOUNT, description: "Endpoints for user account management" },
-			subTag(DOCS_TAGS.ACCOUNT_API_KEYS, DOCS_TAGS.ACCOUNT, "API keys (also used for the SearXNG API)"),
-			subTag(DOCS_TAGS.ACCOUNT_PREFERENCES, DOCS_TAGS.ACCOUNT, "Personal overrides of the instance search settings"),
+			subTag(
+				DOCS_TAGS.ACCOUNT_API_KEYS,
+				DOCS_TAGS.ACCOUNT,
+				"API keys (also used for the SearXNG API)",
+			),
+			subTag(
+				DOCS_TAGS.ACCOUNT_PREFERENCES,
+				DOCS_TAGS.ACCOUNT,
+				"Personal overrides of the instance search settings",
+			),
 			subTag(DOCS_TAGS.ACCOUNT_BANGS, DOCS_TAGS.ACCOUNT, "Personal custom bangs"),
-			{ name: DOCS_TAGS.AUTHENTICATION, description: "Endpoints for authentication and authorization" },
+			{
+				name: DOCS_TAGS.AUTHENTICATION,
+				description: "Endpoints for authentication and authorization",
+			},
 			subTag(DOCS_TAGS.ADMIN_API.USERS, DOCS_TAGS.ADMIN_API.BASE, "User management"),
 			subTag(DOCS_TAGS.ADMIN_API.ENGINES, DOCS_TAGS.ADMIN_API.BASE, "Search engine configuration"),
 			subTag(DOCS_TAGS.ADMIN_API.PROXIES, DOCS_TAGS.ADMIN_API.BASE, "Outbound proxy configuration"),
-			subTag(DOCS_TAGS.ADMIN_API.SETTINGS, DOCS_TAGS.ADMIN_API.BASE, "Instance, search default and AI settings"),
-			subTag(DOCS_TAGS.ADMIN_API.BANGS, DOCS_TAGS.ADMIN_API.BASE, "Instance bangs and the DuckDuckGo dataset"),
+			subTag(
+				DOCS_TAGS.ADMIN_API.SETTINGS,
+				DOCS_TAGS.ADMIN_API.BASE,
+				"Instance, search default and AI settings",
+			),
+			subTag(
+				DOCS_TAGS.ADMIN_API.BANGS,
+				DOCS_TAGS.ADMIN_API.BASE,
+				"Instance bangs and the DuckDuckGo dataset",
+			),
 		],
 	},
 };

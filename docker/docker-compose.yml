@@ -1,0 +1,36 @@
+# X-Ray with a persistent volume.
+#   docker compose -f docker/docker-compose.yml up -d --build
+# The first start creates an `admin` user; the password-reset link is printed to the logs and
+# written to /data/config/initial_admin_password_reset_token.txt.
+
+services:
+  x-ray:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: x-ray:latest
+    restart: unless-stopped
+    ports:
+      # Put a TLS-terminating reverse proxy in front for anything beyond a LAN.
+      - "12418:12418"
+    environment:
+      XRAY_APP_URL: "http://localhost:12418"
+      XRAY_LOG_LEVEL: info
+      # Set to "true" when running behind a reverse proxy that sets X-Forwarded-For.
+      XRAY_TRUST_PROXY: "false"
+      # XRAY_SMTP_HOST: mail.example.com
+      # XRAY_SMTP_PORT: "465"
+      # XRAY_SMTP_USERNAME: user
+      # XRAY_SMTP_PASSWORD: secret
+      # XRAY_SMTP_FROM: '"X-Ray" <noreply@example.com>'
+    volumes:
+      - x-ray-data:/data
+
+  # Optional: a Tor SOCKS5 proxy. Add it under Administration → Proxies as
+  # type "SOCKS5", host "tor", port 9050 — then assign it to engines or use it as default.
+  # tor:
+  #   image: dperson/torproxy
+  #   restart: unless-stopped
+
+volumes:
+  x-ray-data:

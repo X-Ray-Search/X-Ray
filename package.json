@@ -15,12 +15,12 @@
 		"db:generate": "bun scripts/db-utils && bunx --bun drizzle-kit generate --config=drizzle/configs/drizzle.config.ts",
 		"db:migrate": "bun scripts/db-utils && bunx --bun drizzle-kit migrate --config=drizzle/configs/drizzle.config.ts",
 		"api-client:generate": "bun scripts/api-client-generate.ts",
-		"dev": "bunx --bun nuxt dev --port 12640",
+		"dev": "bunx --bun nuxt dev --port 12418",
 		"generate": "bunx --bun nuxt generate",
 		"preview": "bunx --bun nuxt preview",
 		"postinstall": "bunx --bun nuxt prepare",
 		"build": "nuxt build --preset bun",
-		"start": "PORT=12640 bun run .output/server/index.mjs"
+		"start": "PORT=12418 bun run .output/server/index.mjs"
 	},
 	"dependencies": {
 		"@cleverjs/utils": "^1.2.5",
@@ -53,5 +53,9 @@
 		"drizzle-kit": "^0.31.10",
 		"typescript": "^6.0.3",
 		"vue-tsc": "^3.3.6"
+	},
+	"overrides": {
+		"@unhead/vue": "3.4.0",
+		"unhead": "3.4.0"
 	}
 }

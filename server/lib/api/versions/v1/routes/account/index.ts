@@ -1,15 +1,15 @@
+import { eq } from "drizzle-orm";
 import { Hono } from "hono";
-import { AccountModel } from "./model";
 import { validator } from "hono-openapi";
 import { DB } from "../../../../../db";
-import { type DrizzleDB } from "../../../../../db/utils";
-import { eq } from "drizzle-orm";
+import type { DrizzleDB } from "../../../../../db/utils";
+import { Logger } from "../../../../../utils/logger";
 import { APIResponse } from "../../../../utils/api-res";
-import { APIResponseSpec, APIRouteSpec } from "../../../../utils/specHelpers";
 import { AuthHandler, SessionHandler } from "../../../../utils/authHandler";
 import { UserPreferencesHandler } from "../../../../utils/preferences";
+import { APIResponseSpec, APIRouteSpec } from "../../../../utils/specHelpers";
 import { DOCS_TAGS } from "../../docs";
-import { Logger } from "../../../../../utils/logger";
+import { AccountModel } from "./model";
 
 export const router = new Hono().basePath("/account");
 
@@ -224,7 +224,10 @@ router.delete(
 				await UserPreferencesHandler.deleteAllForUser(authContext.user_id, tx);
 
 				// delete personal bangs
-				await tx.delete(DB.Tables.bangs).where(eq(DB.Tables.bangs.owner_user_id, authContext.user_id)).run();
+				await tx
+					.delete(DB.Tables.bangs)
+					.where(eq(DB.Tables.bangs.owner_user_id, authContext.user_id))
+					.run();
 
 				// finally, delete the user account
 				await tx.delete(DB.Tables.users).where(eq(DB.Tables.users.id, authContext.user_id)).run();

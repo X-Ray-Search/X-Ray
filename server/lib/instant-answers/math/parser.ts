@@ -46,13 +46,13 @@ export class MathParser {
 		this.tokens = MathParser.tokenize(input);
 	}
 
-	/** Evaluate an expression; throws `MathParser.SyntaxError` on invalid input. */
+	/** Evaluate an expression; throws `MathParser.ParseError` on invalid input. */
 	static evaluate(input: string): number {
 		const parser = new MathParser(input);
-		if (!parser.tokens.length) throw new MathParser.SyntaxError("Empty expression");
+		if (!parser.tokens.length) throw new MathParser.ParseError("Empty expression");
 		const value = parser.parseAdditive();
 		if (parser.position < parser.tokens.length) {
-			throw new MathParser.SyntaxError(`Unexpected '${parser.tokens[parser.position]!.value}'`);
+			throw new MathParser.ParseError(`Unexpected '${parser.tokens[parser.position]!.value}'`);
 		}
 		return value.value;
 	}
@@ -67,7 +67,12 @@ export class MathParser {
 
 	static tokenize(input: string): MathParser.Token[] {
 		const tokens: MathParser.Token[] = [];
-		const source = input.toLowerCase().replace(/\*\*/g, "^").replace(/×/g, "*").replace(/÷/g, "/").replace(/−/g, "-");
+		const source = input
+			.toLowerCase()
+			.replace(/\*\*/g, "^")
+			.replace(/×/g, "*")
+			.replace(/÷/g, "/")
+			.replace(/−/g, "-");
 		let i = 0;
 		while (i < source.length) {
 			const char = source[i]!;
@@ -84,16 +89,22 @@ export class MathParser {
 			const word = source.slice(i).match(/^([a-zπ][a-z0-9]*)/);
 			if (word) {
 				// `x` between operands means multiplication ("3 x 4").
-				tokens.push({ type: word[0] === "x" ? "operator" : "word", value: word[0] === "x" ? "*" : word[0] });
+				tokens.push({
+					type: word[0] === "x" ? "operator" : "word",
+					value: word[0] === "x" ? "*" : word[0],
+				});
 				i += word[0].length;
 				continue;
 			}
 			if ("+-*/^%!(),°".includes(char)) {
-				tokens.push({ type: char === "(" || char === ")" || char === "," ? "paren" : "operator", value: char });
+				tokens.push({
+					type: char === "(" || char === ")" || char === "," ? "paren" : "operator",
+					value: char,
+				});
 				i++;
 				continue;
 			}
-			throw new MathParser.SyntaxError(`Unexpected character '${char}'`);
+			throw new MathParser.ParseError(`Unexpected character '${char}'`);
 		}
 		return tokens;
 	}
@@ -108,16 +119,18 @@ export class MathParser {
 
 	private expect(value: string) {
 		const token = this.next();
-		if (token?.value !== value) throw new MathParser.SyntaxError(`Expected '${value}'`);
+		if (token?.value !== value) throw new MathParser.ParseError(`Expected '${value}'`);
 	}
 
-	/** Can the current token start an operand (for implicit multiplication)? */
-	private startsOperand() {
-		const token = this.peek();
+	/** Can the token at `offset` start an operand (for implicit multiplication)? */
+	private startsOperand(offset = 0) {
+		const token = this.tokens[this.position + offset];
 		if (!token) return false;
 		if (token.type === "number") return true;
 		if (token.value === "(") return true;
-		return token.type === "word" && token.value !== "mod" && token.value !== "of" && token.value !== "deg";
+		return (
+			token.type === "word" && token.value !== "mod" && token.value !== "of" && token.value !== "deg"
+		);
 	}
 
 	private parseAdditive(): MathParser.Value {
@@ -140,7 +153,7 @@ export class MathParser {
 				this.next();
 				const right = this.parseUnary();
 				if (token.value === "/") {
-					if (right.value === 0) throw new MathParser.SyntaxError("Division by zero");
+					if (right.value === 0) throw new MathParser.ParseError("Division by zero");
 					left = { value: left.value / right.value };
 				} else {
 					left = { value: left.value * right.value };
@@ -159,8 +172,7 @@ export class MathParser {
 
 	/** `%` followed by an operand is modulo; otherwise it is a percent sign. */
 	private isModulo() {
-		const after = this.tokens[this.position + 1];
-		return !!after && (after.type === "number" || after.value === "(" || after.type === "word");
+		return this.startsOperand(1);
 	}
 
 	private parseUnary(): MathParser.Value {
@@ -204,7 +216,7 @@ export class MathParser {
 
 	private parsePrimary(): MathParser.Value {
 		const token = this.next();
-		if (!token) throw new MathParser.SyntaxError("Unexpected end of expression");
+		if (!token) throw new MathParser.ParseError("Unexpected end of expression");
 
 		if (token.type === "number") return { value: Number(token.value) };
 
@@ -232,11 +244,12 @@ export class MathParser {
 				return { value: fn(this.parsePostfix().value) };
 			}
 		}
-		throw new MathParser.SyntaxError(`Unknown token '${token.value}'`);
+		throw new MathParser.ParseError(`Unknown token '${token.value}'`);
 	}
 
 	static factorial(n: number): number {
-		if (!Number.isInteger(n) || n < 0) throw new MathParser.SyntaxError("Factorial needs a non-negative integer");
+		if (!Number.isInteger(n) || n < 0)
+			throw new MathParser.ParseError("Factorial needs a non-negative integer");
 		if (n > 170) return Number.POSITIVE_INFINITY;
 		let result = 1;
 		for (let i = 2; i <= n; i++) result *= i;
@@ -267,5 +280,5 @@ export namespace MathParser {
 		percent?: boolean;
 	}
 
-	export class SyntaxError extends Error {}
+	export class ParseError extends Error {}
 }

@@ -47,3 +47,5 @@ data/
 !app/data/
 config/*
 !config/*.example.json
+
+.claude/settings.local.json

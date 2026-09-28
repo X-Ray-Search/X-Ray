@@ -41,7 +41,10 @@ export class WikipediaEngine extends SearchEngine<z.infer<typeof Settings>> {
 		});
 
 		const data = await this.http.json<{
-			query?: { search?: Array<{ title: string; snippet: string }>; searchinfo?: { totalhits?: number } };
+			query?: {
+				search?: Array<{ title: string; snippet: string }>;
+				searchinfo?: { totalhits?: number };
+			};
 		}>(`https://${lang}.wikipedia.org/w/api.php?${params}`, {
 			headers: { "User-Agent": AppConstants.BOT_USER_AGENT },
 		});

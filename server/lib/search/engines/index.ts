@@ -1,10 +1,14 @@
 import type { SearchEngine } from "./base";
-import { BingEngine } from "./bing/web";
 import { BingImagesEngine, BingNewsEngine } from "./bing/media";
+import { BingEngine } from "./bing/web";
 import { BraveEngine } from "./brave";
 import { BraveAPIEngine } from "./braveApi";
+import {
+	DuckDuckGoImagesEngine,
+	DuckDuckGoNewsEngine,
+	DuckDuckGoVideosEngine,
+} from "./duckduckgo/media";
 import { DuckDuckGoEngine } from "./duckduckgo/web";
-import { DuckDuckGoImagesEngine, DuckDuckGoNewsEngine, DuckDuckGoVideosEngine } from "./duckduckgo/media";
 import { MojeekEngine } from "./mojeek";
 import { SearXNGEngine } from "./searxng";
 import { WikipediaEngine } from "./wikipedia";

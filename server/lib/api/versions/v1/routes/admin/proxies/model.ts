@@ -2,7 +2,7 @@ import { z } from "zod";
 import { ProxyTransport } from "../../../../../../proxy/transport";
 
 export namespace AdminProxiesModel {
-	export const Proxy = z.object({
+	export const Item = z.object({
 		id: z.number(),
 		name: z.string(),
 		proxy_type: z.string(),
@@ -13,7 +13,7 @@ export namespace AdminProxiesModel {
 		used_by_engines: z.array(z.string()).describe("Slugs of engines routed through this proxy"),
 		is_default: z.boolean().describe("Part of the instance default proxy list"),
 	});
-	export type Proxy = z.infer<typeof Proxy>;
+	export type Item = z.infer<typeof Item>;
 
 	export const ProxyType = z.object({
 		type: z.string(),

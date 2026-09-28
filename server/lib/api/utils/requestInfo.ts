@@ -16,7 +16,8 @@ export class RequestInfo {
 			const real = c.req.header("x-real-ip")?.trim();
 			if (forwarded || real) return RequestInfo.normalize(forwarded || real!);
 		}
-		const direct = c.req.header(RequestInfo.CLIENT_IP_HEADER) ?? (c.req.raw as any)?.remoteAddr?.hostname;
+		const direct =
+			c.req.header(RequestInfo.CLIENT_IP_HEADER) ?? (c.req.raw as any)?.remoteAddr?.hostname;
 		return direct ? RequestInfo.normalize(direct) : null;
 	}
 

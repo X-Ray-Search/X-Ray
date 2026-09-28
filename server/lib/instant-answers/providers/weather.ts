@@ -55,7 +55,9 @@ export class WeatherProvider extends InstantAnswerProvider {
 	private static parseLocation(query: string): string | null {
 		const q = query.trim().toLowerCase().replace(/\?$/, "");
 		const match =
-			q.match(/^(?:weather|wetter|météo|meteo|forecast|weather forecast)\s+(?:in\s+|for\s+|at\s+)?(.{2,60})$/) ??
+			q.match(
+				/^(?:weather|wetter|météo|meteo|forecast|weather forecast)\s+(?:in\s+|for\s+|at\s+)?(.{2,60})$/,
+			) ??
 			q.match(/^(?:what(?:'s|\s+is)\s+the\s+)?weather\s+(?:like\s+)?(?:in|at)\s+(.{2,60})$/) ??
 			q.match(/^(.{2,60}?)\s+(?:weather|wetter|forecast)(?:\s+(?:today|tomorrow|now))?$/);
 		return match?.[1]?.trim() ?? null;
@@ -81,7 +83,8 @@ export class WeatherProvider extends InstantAnswerProvider {
 			const params = new URLSearchParams({
 				latitude: String(geo.latitude),
 				longitude: String(geo.longitude),
-				current: "temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,is_day",
+				current:
+					"temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,is_day",
 				daily: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max",
 				timezone: "auto",
 				forecast_days: "5",

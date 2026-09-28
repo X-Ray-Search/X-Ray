@@ -8,7 +8,7 @@ export namespace AppConstants {
 
 	export const APP_KEYS_PREFIX = "xray";
 
-	export const APP_DEFAULT_PORT = 12640;
+	export const APP_DEFAULT_PORT = 12418;
 
 	export const DEFAULT_EMAIL_FROM_HOST = "xray.local";
 

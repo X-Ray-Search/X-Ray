@@ -15,7 +15,10 @@ type ProviderID = Exclude<(typeof SettingsModels.AutocompleteProviders)[number],
 export class AutocompleteService {
 	private static readonly cache = new TTLCache<string[]>(2000, 10 * 60_000);
 
-	static readonly PROVIDERS: Record<ProviderID, { name: string; url: (q: string, locale: string) => string }> = {
+	static readonly PROVIDERS: Record<
+		ProviderID,
+		{ name: string; url: (q: string, locale: string) => string }
+	> = {
 		duckduckgo: {
 			name: "DuckDuckGo",
 			url: (q, locale) =>
@@ -52,7 +55,10 @@ export class AutocompleteService {
 		try {
 			const res = await ProxyManager.fetch(this.PROVIDERS[provider].url(q, locale), {
 				headers: {
-					"User-Agent": provider === "wikipedia" ? AppConstants.BOT_USER_AGENT : "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0",
+					"User-Agent":
+						provider === "wikipedia"
+							? AppConstants.BOT_USER_AGENT
+							: "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0",
 					Accept: "application/json",
 					"Accept-Language": SearchUtils.acceptLanguage(locale),
 				},
@@ -60,9 +66,10 @@ export class AutocompleteService {
 			});
 			if (!res.ok) return [];
 			const data = (await res.json()) as unknown;
-			const suggestions = Array.isArray(data) && Array.isArray(data[1])
-				? (data[1] as unknown[]).filter((s): s is string => typeof s === "string").slice(0, 10)
-				: [];
+			const suggestions =
+				Array.isArray(data) && Array.isArray(data[1])
+					? (data[1] as unknown[]).filter((s): s is string => typeof s === "string").slice(0, 10)
+					: [];
 			this.cache.set(key, suggestions);
 			return suggestions;
 		} catch (err) {

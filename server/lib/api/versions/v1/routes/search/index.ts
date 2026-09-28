@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import { describeRoute, validator as zValidator } from "hono-openapi";
 import { streamSSE } from "hono/streaming";
+import { describeRoute, validator as zValidator } from "hono-openapi";
 import { AIService } from "../../../../../ai";
 import { BangService } from "../../../../../bangs";
 import { AutocompleteService } from "../../../../../search/autocomplete";
@@ -51,7 +51,10 @@ router.get(
 				language: query.language,
 				safesearch: query.safesearch as SearchTypes.SafeSearch | undefined,
 				timeRange: query.time_range ?? null,
-				engines: query.engines?.split(",").map((e) => e.trim()).filter(Boolean),
+				engines: query.engines
+					?.split(",")
+					.map((e) => e.trim())
+					.filter(Boolean),
 			},
 			{
 				userID: access.userID,
@@ -94,9 +97,14 @@ router.get(
 		const wantsBang = preferences.bangs_enabled && lastToken.startsWith("!");
 
 		const [suggestions, bangs] = await Promise.all([
-			wantsBang ? Promise.resolve([]) : AutocompleteService.suggest(q, preferences.autocomplete, preferences.language),
 			wantsBang
-				? BangService.suggest(lastToken, { userID: access.userID, includeDDG: preferences.ddg_bangs_enabled })
+				? Promise.resolve([])
+				: AutocompleteService.suggest(q, preferences.autocomplete, preferences.language),
+			wantsBang
+				? BangService.suggest(lastToken, {
+						userID: access.userID,
+						includeDDG: preferences.ddg_bangs_enabled,
+					})
 				: Promise.resolve([]),
 		]);
 
@@ -128,7 +136,11 @@ router.get(
 		if (!access.ok) return c.body(JSON.stringify([q, []]));
 
 		const preferences = await SettingsHandler.getEffectivePreferences(access.userID);
-		const suggestions = await AutocompleteService.suggest(q, preferences.autocomplete, preferences.language);
+		const suggestions = await AutocompleteService.suggest(
+			q,
+			preferences.autocomplete,
+			preferences.language,
+		);
 		return c.body(JSON.stringify([q, suggestions]));
 	},
 );
@@ -204,7 +216,10 @@ router.post(
 				await stream.writeSSE({ event: "done", data: JSON.stringify({ model: config.model }) });
 			} catch (err) {
 				Logger.warn("AI stream failed:", (err as Error).message);
-				await stream.writeSSE({ event: "error", data: JSON.stringify({ message: "The AI endpoint failed" }) });
+				await stream.writeSSE({
+					event: "error",
+					data: JSON.stringify({ message: "The AI endpoint failed" }),
+				});
 			}
 		});
 	},

@@ -1,7 +1,8 @@
 export default defineAppConfig({
 	ui: {
 		colors: {
-			primary: "sky",
+			// Custom cyan palette defined in assets/css/main.css.
+			primary: "xray",
 			neutral: "slate",
 		},
 	},

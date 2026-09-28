@@ -53,7 +53,10 @@ export default defineEventHandler(async (event) => {
 	const request = new Request(url, {
 		method,
 		headers,
-		body: method !== "GET" && method !== "HEAD" ? await readRawBody(event, false) : undefined,
+		body:
+			method !== "GET" && method !== "HEAD"
+				? ((await readRawBody(event, false)) as Uint8Array<ArrayBuffer> | undefined)
+				: undefined,
 	});
 
 	return app.fetch(request);

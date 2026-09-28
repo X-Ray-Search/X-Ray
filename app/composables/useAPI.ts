@@ -7,6 +7,7 @@
  * (errors are normalized into the envelope, never thrown). Callers branch on `result.success`.
  * See docs/07-state-and-data.md.
  */
+import type { WatchSource } from "vue";
 import * as baseAPIClient from "@/api-client/sdk.gen";
 
 export namespace UseAPITypes {
@@ -179,8 +180,15 @@ export async function useAPI<TReturn>(
 	}
 }
 
-export async function useAPIAsyncData<TReturn>(name: string, handler: () => Promise<TReturn>) {
-	const { data, pending: loading, refresh } = await useAsyncData<TReturn>(name, handler);
+/**
+ * `name` may be a getter: the data is refetched whenever the key changes (e.g. search params).
+ */
+export async function useAPIAsyncData<TReturn>(
+	name: string | (() => string),
+	handler: () => Promise<TReturn>,
+	options: { watch?: WatchSource[] } = {},
+) {
+	const { data, pending: loading, refresh } = await useAsyncData<TReturn>(name, handler, options);
 
 	return {
 		data: data as Ref<TReturn>,
@@ -189,8 +197,16 @@ export async function useAPIAsyncData<TReturn>(name: string, handler: () => Prom
 	} satisfies UseAPITypes.AsyncDataReturn<TReturn>;
 }
 
-export async function useAPILazyAsyncData<TReturn>(name: string, handler: () => Promise<TReturn>) {
-	const { data, pending: loading, refresh } = await useLazyAsyncData<TReturn>(name, handler);
+export async function useAPILazyAsyncData<TReturn>(
+	name: string | (() => string),
+	handler: () => Promise<TReturn>,
+	options: { watch?: WatchSource[] } = {},
+) {
+	const {
+		data,
+		pending: loading,
+		refresh,
+	} = await useLazyAsyncData<TReturn>(name, handler, options);
 
 	return {
 		data: data as Ref<TReturn>,

@@ -1,6 +1,6 @@
 import { expect } from "bun:test";
+import { type ZodType, z } from "zod";
 import { API } from "../../server/lib/api";
-import { z, ZodType } from "zod";
 import { Logger } from "../../server/lib/utils/logger";
 
 type HeadersInit = RequestInit["headers"];
@@ -74,7 +74,7 @@ export async function makeAPIRequest<ReturnBody = any>(
 			return parseResult.data;
 		} else {
 			Logger.error("Response body did not match expected schema:", parseResult.error.message);
-			//@ts-ignore
+			//@ts-expect-error
 			expect(parseResult.success).toBe(true);
 		}
 	}

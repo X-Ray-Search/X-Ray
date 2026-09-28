@@ -14,7 +14,9 @@ const Settings = z.object({
 		.string()
 		.max(1024)
 		.default("")
-		.describe("Optional `Authorization` header value, e.g. for an X-Ray instance: `Bearer xray_apikey_…`"),
+		.describe(
+			"Optional `Authorization` header value, e.g. for an X-Ray instance: `Bearer xray_apikey_…`",
+		),
 });
 
 /**

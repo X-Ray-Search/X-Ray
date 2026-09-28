@@ -5,7 +5,13 @@ function normalize(query: string) {
 	return query.trim().toLowerCase().replace(/\s+/g, " ").replace(/\?$/, "");
 }
 
-function top(provider: string, type: string, title: string, text: string, data: Record<string, any>) {
+function top(
+	provider: string,
+	type: string,
+	title: string,
+	text: string,
+	data: Record<string, any>,
+) {
 	return { provider, type, placement: "top" as const, title, text, data, source: null };
 }
 
@@ -34,13 +40,19 @@ export class RandomProvider extends InstantAnswerProvider {
 			const sides = Math.min(Math.max(Number(dice[2] || 6), 2), 1000);
 			const rolls = Array.from({ length: count }, () => randomInt(1, sides + 1));
 			const total = rolls.reduce((a, b) => a + b, 0);
-			return top(id, "random", `Roll ${count}d${sides}`, `${rolls.join(" + ")}${count > 1 ? ` = ${total}` : ""}`, {
-				kind: "dice",
-				count,
-				sides,
-				rolls,
-				total,
-			});
+			return top(
+				id,
+				"random",
+				`Roll ${count}d${sides}`,
+				`${rolls.join(" + ")}${count > 1 ? ` = ${total}` : ""}`,
+				{
+					kind: "dice",
+					count,
+					sides,
+					rolls,
+					total,
+				},
+			);
 		}
 
 		const number =
@@ -81,7 +93,13 @@ export class UUIDProvider extends InstantAnswerProvider {
 		if (!match) return null;
 		const count = Math.min(Math.max(Number(match[1] ?? 1), 1), 20);
 		const values = Array.from({ length: count }, () => randomUUID());
-		return top(UUIDProvider.definition.id, "uuid", count > 1 ? `${count} UUIDs (v4)` : "UUID (v4)", values.join("\n"), { values });
+		return top(
+			UUIDProvider.definition.id,
+			"uuid",
+			count > 1 ? `${count} UUIDs (v4)` : "UUID (v4)",
+			values.join("\n"),
+			{ values },
+		);
 	}
 }
 
@@ -103,12 +121,21 @@ export class PasswordProvider extends InstantAnswerProvider {
 		);
 		if (!match) return null;
 		const length = Math.min(Math.max(Number(match[1] ?? 20), 8), 128);
-		const value = Array.from({ length }, () => PasswordProvider.CHARSET[randomInt(PasswordProvider.CHARSET.length)]).join("");
-		return top(PasswordProvider.definition.id, "password", `Random password (${length} characters)`, value, {
+		const value = Array.from(
+			{ length },
+			() => PasswordProvider.CHARSET[randomInt(PasswordProvider.CHARSET.length)],
+		).join("");
+		return top(
+			PasswordProvider.definition.id,
+			"password",
+			`Random password (${length} characters)`,
 			value,
-			length,
-			charset: PasswordProvider.CHARSET,
-		});
+			{
+				value,
+				length,
+				charset: PasswordProvider.CHARSET,
+			},
+		);
 	}
 }
 
@@ -130,7 +157,13 @@ export class LoremIpsumProvider extends InstantAnswerProvider {
 		if (!match) return null;
 		const count = Math.min(Math.max(Number(match[1] ?? 1), 1), 10);
 		const paragraphs = Array.from({ length: count }, () => LoremIpsumProvider.TEXT);
-		return top(LoremIpsumProvider.definition.id, "lorem_ipsum", "Lorem ipsum", paragraphs.join("\n\n"), { paragraphs });
+		return top(
+			LoremIpsumProvider.definition.id,
+			"lorem_ipsum",
+			"Lorem ipsum",
+			paragraphs.join("\n\n"),
+			{ paragraphs },
+		);
 	}
 }
 
@@ -160,13 +193,23 @@ export class HashProvider extends InstantAnswerProvider {
 	};
 
 	answer(query: string) {
-		const match = query.trim().match(/^(md5|sha-?1|sha224|sha-?256|sha384|sha-?512|sha3-256|sha3-512|blake2b256)\s+(?:hash\s+(?:of\s+)?)?([\s\S]{1,2000})$/i);
+		const match = query
+			.trim()
+			.match(
+				/^(md5|sha-?1|sha224|sha-?256|sha384|sha-?512|sha3-256|sha3-512|blake2b256)\s+(?:hash\s+(?:of\s+)?)?([\s\S]{1,2000})$/i,
+			);
 		if (!match) return null;
 		const name = match[1]!.toLowerCase();
 		const algorithm = HashProvider.ALGORITHMS[name]!;
 		const input = match[2]!;
-		const value = new Bun.CryptoHasher(algorithm as Bun.SupportedCryptoAlgorithms).update(input).digest("hex");
-		return top(HashProvider.definition.id, "hash", `${name.toUpperCase()} hash`, value, { algorithm: name, input, value });
+		const value = new Bun.CryptoHasher(algorithm as Bun.SupportedCryptoAlgorithms)
+			.update(input)
+			.digest("hex");
+		return top(HashProvider.definition.id, "hash", `${name.toUpperCase()} hash`, value, {
+			algorithm: name,
+			input,
+			value,
+		});
 	}
 }
 
@@ -182,7 +225,9 @@ export class EncodingProvider extends InstantAnswerProvider {
 
 	answer(query: string) {
 		const text = query.trim();
-		const base64 = text.match(/^(?:base64\s+(encode|decode)|(encode|decode)\s+base64)\s+([\s\S]{1,4000})$/i);
+		const base64 = text.match(
+			/^(?:base64\s+(encode|decode)|(encode|decode)\s+base64)\s+([\s\S]{1,4000})$/i,
+		);
 		const url = text.match(/^(?:url\s*(encode|decode)|(encode|decode)\s+url)\s+([\s\S]{1,4000})$/i);
 		const id = EncodingProvider.definition.id;
 
@@ -224,21 +269,35 @@ export class ColorProvider extends InstantAnswerProvider {
 	});
 
 	answer(query: string) {
-		const q = normalize(query).replace(/^(?:colou?r|hex)\s+/, "").replace(/\s+colou?r$/, "");
+		const q = normalize(query)
+			.replace(/^(?:colou?r|hex)\s+/, "")
+			.replace(/\s+colou?r$/, "");
 		let rgb: [number, number, number] | null = null;
 
 		const hex = q.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/);
-		const rgbMatch = q.match(/^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(?:,\s*[\d.]+\s*)?\)$/);
-		const hslMatch = q.match(/^hsla?\(\s*(\d{1,3})\s*,\s*(\d{1,3})%\s*,\s*(\d{1,3})%\s*(?:,\s*[\d.]+\s*)?\)$/);
+		const rgbMatch = q.match(
+			/^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(?:,\s*[\d.]+\s*)?\)$/,
+		);
+		const hslMatch = q.match(
+			/^hsla?\(\s*(\d{1,3})\s*,\s*(\d{1,3})%\s*,\s*(\d{1,3})%\s*(?:,\s*[\d.]+\s*)?\)$/,
+		);
 
 		if (hex) {
 			const value = hex[1]!.length === 3 ? [...hex[1]!].map((c) => c + c).join("") : hex[1]!;
-			rgb = [0, 2, 4].map((i) => Number.parseInt(value.slice(i, i + 2), 16)) as [number, number, number];
+			rgb = [0, 2, 4].map((i) => Number.parseInt(value.slice(i, i + 2), 16)) as [
+				number,
+				number,
+				number,
+			];
 		} else if (rgbMatch) {
 			rgb = [Number(rgbMatch[1]), Number(rgbMatch[2]), Number(rgbMatch[3])];
 			if (rgb.some((c) => c > 255)) return null;
 		} else if (hslMatch) {
-			rgb = ColorProvider.hslToRgb(Number(hslMatch[1]) % 360, Math.min(Number(hslMatch[2]), 100), Math.min(Number(hslMatch[3]), 100));
+			rgb = ColorProvider.hslToRgb(
+				Number(hslMatch[1]) % 360,
+				Math.min(Number(hslMatch[2]), 100),
+				Math.min(Number(hslMatch[3]), 100),
+			);
 		}
 		if (!rgb) return null;
 
@@ -246,7 +305,12 @@ export class ColorProvider extends InstantAnswerProvider {
 		const hexValue = `#${rgb.map((c) => c.toString(16).padStart(2, "0")).join("")}`;
 		const [h, s, l] = ColorProvider.rgbToHsl(r, g, b);
 		const k = 1 - Math.max(r, g, b) / 255;
-		const cmyk = k === 1 ? [0, 0, 0, 100] : [r, g, b].map((c) => Math.round(((1 - c / 255 - k) / (1 - k)) * 100)).concat(Math.round(k * 100));
+		const cmyk =
+			k === 1
+				? [0, 0, 0, 100]
+				: [r, g, b]
+						.map((c) => Math.round(((1 - c / 255 - k) / (1 - k)) * 100))
+						.concat(Math.round(k * 100));
 		const data = {
 			hex: hexValue,
 			rgb: `rgb(${r}, ${g}, ${b})`,
@@ -254,7 +318,13 @@ export class ColorProvider extends InstantAnswerProvider {
 			cmyk: `cmyk(${cmyk.join("%, ")}%)`,
 			values: { r, g, b, h, s, l },
 		};
-		return top(ColorProvider.definition.id, "color", hexValue, `${data.hex} · ${data.rgb} · ${data.hsl}`, data);
+		return top(
+			ColorProvider.definition.id,
+			"color",
+			hexValue,
+			`${data.hex} · ${data.rgb} · ${data.hsl}`,
+			data,
+		);
 	}
 
 	static rgbToHsl(r: number, g: number, b: number): [number, number, number] {
@@ -267,7 +337,12 @@ export class ColorProvider extends InstantAnswerProvider {
 		if (max !== min) {
 			const d = max - min;
 			s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-			h = max === rn ? (gn - bn) / d + (gn < bn ? 6 : 0) : max === gn ? (bn - rn) / d + 2 : (rn - gn) / d + 4;
+			h =
+				max === rn
+					? (gn - bn) / d + (gn < bn ? 6 : 0)
+					: max === gn
+						? (bn - rn) / d + 2
+						: (rn - gn) / d + 4;
 			h *= 60;
 		}
 		return [Math.round(h), Math.round(s * 100), Math.round(l * 100)];
@@ -304,7 +379,10 @@ export class IPProvider extends InstantAnswerProvider {
 		}
 		if (/^(my\s+)?(browser\s+)?user[\s-]?agent$/.test(q)) {
 			if (!ctx.userAgent) return null;
-			return top(id, "ip", "Your user agent", ctx.userAgent, { kind: "user_agent", value: ctx.userAgent });
+			return top(id, "ip", "Your user agent", ctx.userAgent, {
+				kind: "user_agent",
+				value: ctx.userAgent,
+			});
 		}
 		return null;
 	}
@@ -361,7 +439,9 @@ export class TimerProvider extends InstantAnswerProvider {
 		if (clock) return Number(clock[1] ?? 0) * 3600 + Number(clock[2]) * 60 + Number(clock[3]);
 		let total = 0;
 		let matched = false;
-		for (const part of text.matchAll(/(\d+(?:\.\d+)?)\s*(h|hr|hrs|hours?|m|min|mins|minutes?|s|sec|secs|seconds?)\b/g)) {
+		for (const part of text.matchAll(
+			/(\d+(?:\.\d+)?)\s*(h|hr|hrs|hours?|m|min|mins|minutes?|s|sec|secs|seconds?)\b/g,
+		)) {
 			matched = true;
 			const value = Number(part[1]);
 			const unit = part[2]!;
@@ -377,13 +457,21 @@ export class TimerProvider extends InstantAnswerProvider {
 		if (/^(start\s+(a\s+)?)?stop\s?watch$/.test(q)) {
 			return top(id, "timer", "Stopwatch", "Stopwatch", { mode: "stopwatch", seconds: 0 });
 		}
-		const match = q.match(/^(?:set\s+(?:a\s+)?)?(?:timer|countdown)(?:\s+(?:for\s+)?(.+))?$/) ?? q.match(/^(.+?)\s+(?:timer|countdown)$/);
+		const match =
+			q.match(/^(?:set\s+(?:a\s+)?)?(?:timer|countdown)(?:\s+(?:for\s+)?(.+))?$/) ??
+			q.match(/^(.+?)\s+(?:timer|countdown)$/);
 		if (!match) return null;
 		const seconds = match[1] ? TimerProvider.parseDuration(match[1]) : 300;
 		if (!seconds || seconds > 24 * 3600) return null;
-		return top(id, "timer", "Timer", `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`, {
-			mode: "timer",
-			seconds,
-		});
+		return top(
+			id,
+			"timer",
+			"Timer",
+			`${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`,
+			{
+				mode: "timer",
+				seconds,
+			},
+		);
 	}
 }

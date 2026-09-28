@@ -15,7 +15,8 @@ router.get(
 
 	APIRouteSpec.custom({
 		summary: "Suggest bangs",
-		description: "Bangs whose trigger starts with the given prefix — personal, instance, internal and DuckDuckGo bangs.",
+		description:
+			"Bangs whose trigger starts with the given prefix — personal, instance, internal and DuckDuckGo bangs.",
 		tags: [DOCS_TAGS.BANGS],
 		security: [{ bearerAuth: [] }, {}],
 		responses: APIResponseSpec.describeWithWrongInputs(
@@ -34,8 +35,16 @@ router.get(
 		const preferences = await SettingsHandler.getEffectivePreferences(access.userID);
 		if (!preferences.bangs_enabled) return APIResponse.success(c, "Bangs retrieved", []);
 
-		const bangs = await BangService.suggest(q, { userID: access.userID, includeDDG: preferences.ddg_bangs_enabled }, limit);
-		return APIResponse.success(c, "Bangs retrieved", bangs.map((b) => BangService.toPublic(b)) satisfies BangsModel.Suggest.Response);
+		const bangs = await BangService.suggest(
+			q,
+			{ userID: access.userID, includeDDG: preferences.ddg_bangs_enabled },
+			limit,
+		);
+		return APIResponse.success(
+			c,
+			"Bangs retrieved",
+			bangs.map((b) => BangService.toPublic(b)) satisfies BangsModel.Suggest.Response,
+		);
 	},
 );
 
@@ -62,15 +71,30 @@ router.get(
 		const { q } = c.req.valid("query") as BangsModel.Resolve.Query;
 		const preferences = await SettingsHandler.getEffectivePreferences(access.userID);
 		const resolution = preferences.bangs_enabled
-			? await BangService.resolve(q, { userID: access.userID, includeDDG: preferences.ddg_bangs_enabled })
+			? await BangService.resolve(q, {
+					userID: access.userID,
+					includeDDG: preferences.ddg_bangs_enabled,
+				})
 			: null;
 
 		const response: BangsModel.Resolve.Response = !resolution
 			? { kind: "none", url: null, category: null, query: q, bang: null }
 			: resolution.kind === "redirect"
-				? { kind: "redirect", url: resolution.url, category: null, query: BangService.parse(q)?.query ?? q, bang: resolution.bang }
+				? {
+						kind: "redirect",
+						url: resolution.url,
+						category: null,
+						query: BangService.parse(q)?.query ?? q,
+						bang: resolution.bang,
+					}
 				: resolution.kind === "category"
-					? { kind: "category", url: null, category: resolution.category, query: resolution.query, bang: resolution.bang }
+					? {
+							kind: "category",
+							url: null,
+							category: resolution.category,
+							query: resolution.query,
+							bang: resolution.bang,
+						}
 					: { kind: "lucky", url: null, category: null, query: resolution.query, bang: null };
 
 		return APIResponse.success(c, "Bang resolved", response);

@@ -79,12 +79,12 @@ export class XRayGatewayTransport extends ProxyTransport<z.infer<typeof Settings
 	}
 
 	/** Decode a body whose `content-encoding` header may or may not describe its bytes. */
-	static decode(body: Uint8Array, encoding: string | null): Uint8Array {
+	static decode(body: Uint8Array<ArrayBuffer>, encoding: string | null): Uint8Array<ArrayBuffer> {
 		const kind = encoding?.toLowerCase().trim();
 		if (!kind || kind === "identity" || body.length === 0) return body;
 		try {
 			if (kind.includes("gzip") && body[0] === 0x1f && body[1] === 0x8b) {
-				return Bun.gunzipSync(body as Uint8Array<ArrayBuffer>);
+				return Bun.gunzipSync(body) as Uint8Array<ArrayBuffer>;
 			}
 			if (
 				kind.includes("zstd") &&
@@ -93,10 +93,10 @@ export class XRayGatewayTransport extends ProxyTransport<z.infer<typeof Settings
 				body[2] === 0x2f &&
 				body[3] === 0xfd
 			) {
-				return Bun.zstdDecompressSync(body);
+				return Bun.zstdDecompressSync(body) as Uint8Array<ArrayBuffer>;
 			}
-			if (kind.includes("br")) return brotliDecompressSync(body);
-			if (kind.includes("deflate")) return inflateSync(body);
+			if (kind.includes("br")) return new Uint8Array(brotliDecompressSync(body));
+			if (kind.includes("deflate")) return new Uint8Array(inflateSync(body));
 		} catch {
 			// Not actually encoded — the gateway runtime already decoded it.
 		}

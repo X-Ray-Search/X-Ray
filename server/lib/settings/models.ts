@@ -22,7 +22,11 @@ export namespace SettingsModels {
 			.array(z.number().int().positive())
 			.describe("Proxies used by engines and outbound fetches that have none configured"),
 		ddg_bangs_auto_update: z.boolean(),
-		ddg_bangs_update_interval_hours: z.number().int().min(1).max(24 * 90),
+		ddg_bangs_update_interval_hours: z
+			.number()
+			.int()
+			.min(1)
+			.max(24 * 90),
 		public_rate_limit_per_minute: z
 			.number()
 			.int()
@@ -113,7 +117,9 @@ export namespace SettingsModels {
 		base_url: z
 			.string()
 			.max(512)
-			.describe("OpenAI compatible base URL, e.g. https://api.openai.com/v1 or http://ollama:11434/v1"),
+			.describe(
+				"OpenAI compatible base URL, e.g. https://api.openai.com/v1 or http://ollama:11434/v1",
+			),
 		api_key: z.string().max(1024),
 		model: z.string().max(256),
 		system_prompt: z.string().max(8000),
@@ -141,6 +147,7 @@ export namespace SettingsModels {
 	/** The AI config as returned by the API — the key is never sent back, only whether one is set. */
 	export const AIConfigPublic = AIConfig.omit({ api_key: true }).extend({
 		api_key_set: z.boolean(),
+		default_system_prompt: z.string().describe("The built-in system prompt, for resetting"),
 	});
 	export type AIConfigPublic = z.infer<typeof AIConfigPublic>;
 

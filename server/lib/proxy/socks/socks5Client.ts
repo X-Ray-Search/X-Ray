@@ -34,12 +34,7 @@ export class Socks5Client {
 				const user = Buffer.from(options.username ?? "");
 				const pass = Buffer.from(options.password ?? "");
 				socket.write(
-					Buffer.concat([
-						Buffer.from([0x01, user.length]),
-						user,
-						Buffer.from([pass.length]),
-						pass,
-					]),
+					Buffer.concat([Buffer.from([0x01, user.length]), user, Buffer.from([pass.length]), pass]),
 				);
 				const [, status] = await reader.read(2);
 				if (status !== 0x00) throw new Error("SOCKS5 authentication failed");
@@ -130,7 +125,8 @@ function ipv6ToBytes(ip: string): Buffer {
 	const missing = 8 - headParts.length - tailParts.length;
 	const parts = [...headParts, ...Array(Math.max(0, missing)).fill("0"), ...tailParts];
 	const buffer = Buffer.alloc(16);
-	parts.forEach((part, i) => buffer.writeUInt16BE(Number.parseInt(part || "0", 16), i * 2));
+	for (const [i, part] of parts.entries())
+		buffer.writeUInt16BE(Number.parseInt(part || "0", 16), i * 2);
 	return buffer;
 }
 

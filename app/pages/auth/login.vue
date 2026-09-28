@@ -1,25 +1,24 @@
 <script setup lang="ts">
 import type { AuthFormField, FormSubmitEvent } from "@nuxt/ui";
 import * as z from "zod";
-import { useOnboardingStore } from "~/composables/stores/useOnboardingStore";
-import { useUserInfoStore } from "~/composables/stores/useUserStore";
 
 definePageMeta({
 	layout: "auth",
 });
 
 useSeoMeta({
-	title: "Login | ProjectName",
-	description: "Login to your account",
+	title: "Sign in | X-Ray",
+	description: "Sign in to X-Ray",
 });
 
 const route = useRoute();
 const toast = useToast();
+const { signIn } = useSession();
 
-// Only follow internal redirects (`/…`, not `//evil.example`); default to the dashboard.
+// Only follow internal redirects (`/…`, not `//evil.example`); default to the search home.
 const requestedUrl = route.query.url?.toString() ?? "";
 const redirectUrl =
-	requestedUrl.startsWith("/") && !requestedUrl.startsWith("//") ? requestedUrl : "/dashboard";
+	requestedUrl.startsWith("/") && !requestedUrl.startsWith("//") ? requestedUrl : "/";
 
 const fields: AuthFormField[] = [
 	{
@@ -40,7 +39,7 @@ const fields: AuthFormField[] = [
 		name: "remember",
 		label: "Remember me",
 		type: "checkbox",
-		description: "You will stay logged in for 30 days.",
+		description: "Stay signed in for 30 days.",
 	},
 ];
 
@@ -65,37 +64,24 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
 		true,
 	);
 
-	loading.value = false;
-
 	if (!result.success) {
+		loading.value = false;
 		const invalidCredentials = (result.code as number) === 401;
 		toast.add({
-			title: invalidCredentials ? "Invalid Username or Password" : "Login Failed",
+			title: invalidCredentials ? "Invalid username or password" : "Sign-in failed",
 			description: invalidCredentials
 				? "Please check your credentials and try again."
-				: result.message || "An error occurred during login. Please try again later.",
+				: result.message || "An error occurred during sign-in. Please try again later.",
 			icon: "i-lucide-alert-circle",
 			color: "error",
 		});
 		return;
 	}
 
-	updateAPIClient(result.data.token);
-	useAppCookies().sessionToken.set(result.data.token, {
-		maxAge: payload.data.remember ? 60 * 60 * 24 * 30 : undefined, // 30 days only with "remember me"
-	});
+	await signIn(result.data.token, payload.data.remember === true);
+	loading.value = false;
 
-	// Fresh per-user state for the new session.
-	await useUserInfoStore().refresh();
-	await useOnboardingStore().clear();
-
-	toast.add({
-		title: "Login Successful",
-		description: "You have been logged in successfully.",
-		icon: "i-lucide-check",
-		color: "success",
-	});
-
+	toast.add({ title: "Signed in", icon: "i-lucide-check", color: "success" });
 	await navigateTo(redirectUrl);
 }
 </script>
@@ -103,24 +89,19 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
 <template>
 	<UAuthForm
 		:schema="schema"
-		title="Login"
-		description="Enter your credentials to access your account."
+		title="Sign in"
+		description="Enter your credentials to use this X-Ray instance."
 		icon="i-lucide-user"
 		:fields="fields"
-		:submit="{ label: 'Login', loading }"
+		:submit="{ label: 'Sign in', loading }"
 		@submit="onSubmit"
 	>
 		<template #footer>
 			<div class="text-center text-sm">
 				Forgot your password?
-				<NuxtLink to="/auth/forgot-password" class="text-primary hover:underline">
-					Reset here
-				</NuxtLink>
+				<NuxtLink to="/auth/forgot-password" class="text-primary hover:underline">Reset it</NuxtLink>
 			</div>
-			<div class="mt-2 text-center text-sm">
-				Don't have an account?
-				<NuxtLink to="/auth/signup" class="text-primary hover:underline">Sign up</NuxtLink>
-			</div>
+			<p class="mt-2 text-center text-xs text-slate-500">Accounts are created by the administrator of this instance.</p>
 		</template>
 	</UAuthForm>
 </template>

@@ -79,8 +79,14 @@ export class SocksBridge {
 			const headerText = head.subarray(0, end).toString("latin1");
 			const rest = head.subarray(end + 4);
 			this.handleRequest(client, headerText, rest).catch((err) => {
-				Logger.debug("SOCKS bridge request failed:", (err as Error).message);
-				if (!client.destroyed) client.end("HTTP/1.1 502 Bad Gateway\r\nConnection: close\r\n\r\n");
+				const message = (err as Error).message;
+				Logger.debug("SOCKS bridge request failed:", message);
+				// Tagged so the transport can tell tunnel failures from upstream 502s.
+				if (!client.destroyed) {
+					client.end(
+						`HTTP/1.1 502 Bad Gateway\r\n${SocksBridge.ERROR_HEADER}: ${encodeURIComponent(message)}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n`,
+					);
+				}
 			});
 		};
 		client.on("data", onData);
@@ -177,6 +183,9 @@ export class SocksBridge {
 
 export namespace SocksBridge {
 	export const MAX_HEADER_BYTES = 64 * 1024;
+
+	/** Marks 502s produced by the bridge itself (the SOCKS tunnel could not be opened). */
+	export const ERROR_HEADER = "X-Xray-Bridge-Error";
 
 	export interface Upstream {
 		host: string;

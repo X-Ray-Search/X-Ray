@@ -1,11 +1,11 @@
 import type { HTMLElement } from "node-html-parser";
-import { z } from "zod";
+import type { z } from "zod";
 import type { SearchTypes } from "../../types";
 import { SearchUtils } from "../../utils";
 import { SearchEngine } from "../base";
 import { BingCommon } from "./common";
 
-const Settings = z.object({});
+const Settings = BingCommon.Settings;
 
 export class BingImagesEngine extends SearchEngine<z.infer<typeof Settings>> {
 	static readonly definition = SearchEngine.define({
@@ -34,7 +34,7 @@ export class BingImagesEngine extends SearchEngine<z.infer<typeof Settings>> {
 
 		const { root } = await this.http.html(`https://www.bing.com/images/async?${params}`, {
 			language: query.language,
-			cookies: BingCommon.cookies(query.language, query.safesearch),
+			cookies: BingCommon.cookies(query.safesearch, this.settings.market),
 		});
 		return { results: BingImagesEngine.parseResults(root) };
 	}
@@ -97,7 +97,7 @@ export class BingNewsEngine extends SearchEngine<z.infer<typeof Settings>> {
 
 		const { root } = await this.http.html(`https://www.bing.com/news/infinitescrollajax?${params}`, {
 			language: query.language,
-			cookies: BingCommon.cookies(query.language, query.safesearch),
+			cookies: BingCommon.cookies(query.safesearch, this.settings.market),
 		});
 		return { results: BingNewsEngine.parseResults(root) };
 	}
@@ -105,7 +105,9 @@ export class BingNewsEngine extends SearchEngine<z.infer<typeof Settings>> {
 	static parseResults(root: HTMLElement): SearchTypes.EngineResult[] {
 		const results: SearchTypes.EngineResult[] = [];
 		for (const card of root.querySelectorAll(".news-card")) {
-			const url = SearchUtils.safeURL(card.getAttribute("data-url") ?? card.getAttribute("url"))?.toString();
+			const url = SearchUtils.safeURL(
+				card.getAttribute("data-url") ?? card.getAttribute("url"),
+			)?.toString();
 			if (!url) continue;
 
 			const imageSrc = card.querySelector(".image img")?.getAttribute("src");
@@ -118,7 +120,9 @@ export class BingNewsEngine extends SearchEngine<z.infer<typeof Settings>> {
 
 			results.push({
 				url,
-				title: SearchUtils.cleanText(card.getAttribute("data-title") ?? card.querySelector("a.title")?.text),
+				title: SearchUtils.cleanText(
+					card.getAttribute("data-title") ?? card.querySelector("a.title")?.text,
+				),
 				content: SearchUtils.cleanText(card.querySelector(".snippet")?.text),
 				template: "news",
 				thumbnail,

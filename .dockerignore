@@ -1,0 +1,12 @@
+.git
+node_modules
+.nuxt
+.output
+.nitro
+.cache
+data
+config
+.env
+.env.*
+tmp-data-*
+coverage

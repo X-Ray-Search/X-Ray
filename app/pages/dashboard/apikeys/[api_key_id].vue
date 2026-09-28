@@ -74,7 +74,7 @@ function getRoutesConfig(): UseSubrouterPathDynamics.RoutesConfig {
 }
 
 const subrouterPathDynamics = useSubrouterPathDynamics({
-	baseTitle: "API Keys | ProjectName",
+	baseTitle: "API Keys | X-Ray",
 	basebreadcrumbItems: [{ label: "API Keys", to: "/dashboard/apikeys" }],
 	routes: getRoutesConfig(),
 });
