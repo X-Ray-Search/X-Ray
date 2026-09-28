@@ -12,7 +12,12 @@ import type { DrizzleDB } from "./utils";
 export class DB {
 	protected static db: DrizzleDB.BunSQLite;
 
-	static async init(path: string, autoMigrate: boolean, configBaseDir: string, migrationsFolder: string) {
+	static async init(
+		path: string,
+		autoMigrate: boolean,
+		configBaseDir: string,
+		migrationsFolder: string,
+	) {
 		await fs_mkdir(path_dirname(path), { recursive: true });
 		await fs_mkdir(configBaseDir, { recursive: true });
 

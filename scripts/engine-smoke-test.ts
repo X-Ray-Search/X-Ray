@@ -24,7 +24,7 @@ const { SearchAggregator } = await import("../server/lib/search/aggregator");
 
 await ConfigHandler.loadConfig();
 Logger.setLogLevel("warn");
-await DB.init(join(dir, "db.sqlite"), true, dir);
+await DB.init(join(dir, "db.sqlite"), true, dir, "./drizzle/migrations");
 
 const [query = "linux kernel", ...only] = process.argv.slice(2);
 const types = SearchEngineRegistry.list()
