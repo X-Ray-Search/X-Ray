@@ -4,12 +4,8 @@
 # written to /data/config/initial_admin_password_reset_token.txt.
 
 services:
-  x-ray:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-    image: x-ray:latest
-    restart: unless-stopped
+  x-ray-search:
+    image: gcr.leicraftmc.de/x-ray-search/x-ray:latest
     ports:
       # Put a TLS-terminating reverse proxy in front for anything beyond a LAN.
       - "12418:12418"
@@ -24,7 +20,9 @@ services:
       # XRAY_SMTP_PASSWORD: secret
       # XRAY_SMTP_FROM: '"X-Ray" <noreply@example.com>'
     volumes:
-      - x-ray-data:/data
+      - /opt/x-ray-search/data:/data
+      - /opt/leiai/api-gateway/config:/app/config:ro
+    restart: unless-stopped
 
   # Optional: a Tor SOCKS5 proxy. Add it under Administration → Proxies as
   # type "SOCKS5", host "tor", port 9050 — then assign it to engines or use it as default.
@@ -32,5 +30,3 @@ services:
   #   image: dperson/torproxy
   #   restart: unless-stopped
 
-volumes:
-  x-ray-data:
