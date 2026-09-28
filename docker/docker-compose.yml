@@ -6,6 +6,7 @@
 services:
   x-ray-search:
     image: gcr.leicraftmc.de/x-ray-search/x-ray:latest
+    container_name: x-ray-search
     ports:
       # Put a TLS-terminating reverse proxy in front for anything beyond a LAN.
       - "12418:12418"
@@ -20,8 +21,8 @@ services:
       # XRAY_SMTP_PASSWORD: secret
       # XRAY_SMTP_FROM: '"X-Ray" <noreply@example.com>'
     volumes:
-      - /opt/x-ray-search/data:/data
-      - /opt/leiai/api-gateway/config:/app/config:ro
+      - /opt/x-ray-search/search/data:/data
+      - /opt/x-ray-search/search/config:/app/config:ro
     restart: unless-stopped
 
   # Optional: a Tor SOCKS5 proxy. Add it under Administration → Proxies as
