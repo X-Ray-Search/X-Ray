@@ -4,9 +4,13 @@ A self-hostable, modern and extensible **meta search engine**. X-Ray asks severa
 once, merges and ranks their results, and answers many questions directly — without ads, trackers
 or profiling.
 
-- **Many engines, one result list** — DuckDuckGo, Bing, Brave, Wikipedia, Mojeek, YouTube, the
-  Brave Search API, other SearXNG/X-Ray instances … for web, images, news and videos. Results found
-  by several engines rank higher; blocked engines are suspended with backoff automatically.
+- **Many engines, one result list** — DuckDuckGo, Bing, Brave, Google (Programmable Search),
+  Startpage, Yahoo, Wikipedia, Mojeek, Ecosia, Hacker News, Reddit, Lemmy, Openverse, Wikimedia
+  Commons, YouTube, Dailymotion, PeerTube, The Guardian, the Brave Search API, other SearXNG/X-Ray
+  instances … for web, images, news and videos. Results found by several engines rank higher.
+- **Gentle on the engines** — every engine's answers are cached (also on disk), identical
+  requests share one upstream call, per-engine rate limits and fallback engines keep searches
+  working while an engine is blocked, and blocked engines back off automatically.
 - **Bangs** — the ~13,000 DuckDuckGo bangs (`!w black holes`, `!gh nuxt`) plus instance-wide and
   personal custom bangs, with live feedback in the search box. Bangs resolve on the server, so they
   work straight from the browser address bar.
@@ -70,7 +74,6 @@ Deployment settings are environment variables (see [`example.env`](example.env))
 | `XRAY_CONFIG_BASE_DIR` | `./config` | Runtime files (initial admin reset link) |
 | `XRAY_LOG_DIR` / `XRAY_LOG_LEVEL` | `./data/logs` / `info` | |
 | `XRAY_TRUST_PROXY` | `false` | Use `X-Forwarded-For` / `X-Real-IP` from a reverse proxy |
-| `XRAY_SEARCH_CACHE_TTL` | `300` | Seconds a result page is cached |
 | `XRAY_BANGS_DISABLE_AUTO_FETCH` | `false` | Never download the DuckDuckGo bang dataset |
 | `XRAY_API_DISABLE_DOCS` | `false` | Hide the API docs |
 | `XRAY_SMTP_*` | — | Optional, for password-reset emails |
@@ -89,6 +92,31 @@ Everything else is configured in the dashboard (**Administration**):
 
 Users change their own **Preferences** (each setting shows whether it follows the instance
 default), **My bangs** and **API keys** in the dashboard.
+
+### Caching, rate limits and fallbacks
+
+X-Ray tries hard not to ask the engines more often than necessary — scrapers get IP-banned for
+bursts, and a banned engine is worse than a slightly older result.
+
+- **Per-engine cache** — every engine's answer to a query is cached on its own (60 min, news
+  10 min), so users with different engine selections share entries and one failing engine doesn't
+  invalidate the others. The cache lives in memory and in `search-cache.sqlite` next to the
+  database, so it survives restarts; changing an engine's settings gives it new cache keys.
+- **Stale fallback** — expired results stay available for 24 h and are served (marked with a
+  dashed badge) while their engine is blocked, suspended, rate limited, failing or suddenly
+  answering with nothing.
+- **Request coalescing** — identical requests that are already running (two users, or the page
+  and its AI answer) share one upstream request; failures are remembered for a minute.
+- **Rate limits per engine** — at most _n_ requests per minute (scrapers that ban quickly get a
+  suggested limit). An engine out of budget is skipped instead of risking a ban.
+- **Fallback engines** — mark engines as fallbacks and they are only queried when fewer than
+  _n_ regular engines (default 2) deliver results. Engines known to be unavailable are counted up
+  front, so their fallbacks start right away.
+- **Backoff** — engines that get blocked (captcha, 403, 429) are suspended with exponential
+  backoff, at least as long as the engine's `Retry-After` asks for.
+
+All of it is tunable under **Settings › Instance › Search cache & fallbacks** (which also shows
+hit rates) and per engine under **Engines**.
 
 ## Using X-Ray
 
@@ -184,7 +212,8 @@ Layout (full-stack shape of the style guide):
 ```
 server/
   lib/api/            Hono app: versions/v1/routes/** (REST), searxng/ (compat API), utils/
-  lib/search/         engines/, aggregator, service (pipeline), health, cache, autocomplete
+  lib/search/         engines/, aggregator (fallbacks), service (pipeline), runCache, throttle,
+                      health, autocomplete
   lib/proxy/          ProxyManager, transports/, socks/ (SOCKS5 client + local CONNECT bridge)
   lib/bangs/          bang index, DuckDuckGo dataset, custom bangs
   lib/instant-answers/  providers/, math/ (safe expression parser, units)

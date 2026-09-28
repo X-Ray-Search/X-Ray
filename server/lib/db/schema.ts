@@ -148,6 +148,10 @@ export const searchEngines = sqliteTable("search_engines", {
 	// Proxies to route this engine through (round-robin). Empty → instance default proxies.
 	proxy_ids: text({ mode: "json" }).$type<number[]>().notNull().default(sql`'[]'`),
 	settings: text({ mode: "json" }).$type<Record<string, any>>().notNull().default(sql`'{}'`),
+	// Fallback engines only run when fewer than `min_healthy_engines` regular engines answer.
+	fallback: integer({ mode: "boolean" }).notNull().default(false),
+	// Upstream requests per minute this engine may make; 0 = unlimited.
+	rate_limit_per_minute: integer().notNull().default(0),
 	created_at: SQLUtils.getCreatedAtColumn(),
 });
 

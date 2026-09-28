@@ -32,6 +32,11 @@ export abstract class SearchEngine<Settings extends Record<string, any> = Record
 
 	abstract search(query: SearchTypes.EngineQuery): Promise<SearchTypes.EngineResponse>;
 
+	/** Identifies what this instance would answer — cached runs are keyed by it. */
+	get cacheFingerprint(): string {
+		return `${this.config.type}:${JSON.stringify(this.settings)}`;
+	}
+
 	/** Same engine bound to an abort signal — lets the aggregator cancel slow requests. */
 	withSignal(signal: AbortSignal): this {
 		const Ctor = this.constructor as new (
@@ -70,6 +75,11 @@ export namespace SearchEngine {
 		/** Engines that need configuration (API keys, URLs) are not seeded by default. */
 		readonly requiresConfiguration?: boolean;
 		readonly defaultTimeoutMs?: number;
+		/**
+		 * Suggested request budget for new instances of scrapers that ban quickly (requests per
+		 * minute, 0 = unlimited). Admins can change it per instance.
+		 */
+		readonly defaultRateLimitPerMinute?: number;
 	}
 
 	export interface Class<S extends z.ZodObject = z.ZodObject> {
@@ -87,5 +97,9 @@ export namespace SearchEngine {
 		readonly weight: number;
 		readonly timeoutMs: number;
 		readonly proxyIds: readonly number[];
+		/** Only queried when too few regular engines answer (see `SearchAggregator`). */
+		readonly fallback: boolean;
+		/** Upstream requests per minute this instance may make; 0 = unlimited. */
+		readonly rateLimitPerMinute: number;
 	}
 }

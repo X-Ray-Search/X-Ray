@@ -13,7 +13,47 @@ export class SearchUtils {
 	/** Strip HTML tags and decode entities (for APIs that embed markup in text fields). */
 	static stripTags(html: string | undefined | null): string {
 		if (!html) return "";
-		return this.cleanText(parseHTML(`<div>${html}</div>`).text);
+		// Block elements separate words: `<p>a</p><p>b</p>` is "a b", not "ab".
+		const spaced = html.replace(/<\/?(p|br|div|li|tr|td|th|h[1-6]|blockquote|pre)\b[^>]*>/gi, " ");
+		return this.cleanText(parseHTML(`<div>${spaced}</div>`).text);
+	}
+
+	/** Shorten to `max` characters with an ellipsis (merging keeps the longest snippet). */
+	static excerpt(text: string, max = 300): string {
+		return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
+	}
+
+	/** Seconds → `m:ss` / `h:mm:ss`. */
+	static formatDuration(seconds: number | undefined | null): string | undefined {
+		if (!seconds || seconds < 0) return undefined;
+		const s = Math.round(seconds);
+		const [h, m, rest] = [Math.floor(s / 3600), Math.floor((s % 3600) / 60), s % 60];
+		const pad = (n: number) => String(n).padStart(2, "0");
+		return h ? `${h}:${pad(m)}:${pad(rest)}` : `${m}:${pad(rest)}`;
+	}
+
+	/** "5 hours ago", "May 25, 2023" or an ISO stamp (UTC when it has no zone) → epoch ms. */
+	static parseDate(text: string | undefined | null): number | undefined {
+		if (!text) return undefined;
+		const relative = this.parseRelativeTime(text);
+		if (relative !== undefined) return relative;
+		const iso = /^\d{4}-\d{2}-\d{2}T[\d:.]+$/.test(text) ? `${text}Z` : text;
+		const date = Date.parse(iso);
+		return Number.isNaN(date) ? undefined : date;
+	}
+
+	/** Privacy-friendly player URL for a YouTube video link (other links → undefined). */
+	static youtubeEmbedURL(value: string): string | undefined {
+		const url = this.safeURL(value);
+		if (!url) return undefined;
+		const host = url.hostname.replace(/^(www|m)\./, "");
+		const id =
+			host === "youtu.be"
+				? url.pathname.slice(1)
+				: host === "youtube.com"
+					? (url.searchParams.get("v") ?? url.pathname.match(/^\/(?:shorts|embed)\/([^/]+)/)?.[1])
+					: undefined;
+		return id && /^[\w-]{11}$/.test(id) ? `https://www.youtube-nocookie.com/embed/${id}` : undefined;
 	}
 
 	/** Parse an absolute http(s) URL, returning null for anything else. */

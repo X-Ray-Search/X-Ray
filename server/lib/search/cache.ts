@@ -39,6 +39,13 @@ export class TTLCache<V> {
 		this.entries.delete(key);
 	}
 
+	/** Drop every entry the predicate matches. */
+	deleteWhere(predicate: (value: V, key: string) => boolean) {
+		for (const [key, entry] of this.entries) {
+			if (predicate(entry.value, key)) this.entries.delete(key);
+		}
+	}
+
 	clear() {
 		this.entries.clear();
 	}
@@ -53,5 +60,27 @@ export class TTLCache<V> {
 
 	get size() {
 		return this.entries.size;
+	}
+}
+
+/**
+ * Request coalescing ("single flight"): concurrent calls with the same key share one running
+ * promise instead of each hitting the upstream. The key is released once the promise settles.
+ */
+export class InFlight<T> {
+	private readonly running = new Map<string, Promise<T>>();
+
+	/** `joined` is true when the call piggybacked on a request that was already running. */
+	async run(key: string, task: () => Promise<T>): Promise<{ value: T; joined: boolean }> {
+		const existing = this.running.get(key);
+		if (existing) return { value: await existing, joined: true };
+
+		const promise = task().finally(() => this.running.delete(key));
+		this.running.set(key, promise);
+		return { value: await promise, joined: false };
+	}
+
+	get size() {
+		return this.running.size;
 	}
 }

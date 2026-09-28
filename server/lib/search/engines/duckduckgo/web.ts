@@ -28,6 +28,8 @@ export class DuckDuckGoEngine extends SearchEngine<z.infer<typeof Settings>> {
 		categories: ["general"],
 		settings: Settings,
 		features: { paging: true, timeRange: true, safeSearch: true, language: true },
+		// DuckDuckGo flags an IP after a few rapid requests.
+		defaultRateLimitPerMinute: 30,
 	});
 
 	private static readonly ENDPOINT = "https://html.duckduckgo.com/html/";
@@ -35,7 +37,9 @@ export class DuckDuckGoEngine extends SearchEngine<z.infer<typeof Settings>> {
 		string,
 		{ form: Record<string, string>; expires: number }
 	>();
-	private static readonly FORM_TTL_MS = 20 * 60_000;
+	// As long as the default result cache TTL: page 1 is often served from the cache (so no new
+	// form is captured) when the user asks for page 2.
+	private static readonly FORM_TTL_MS = 60 * 60_000;
 
 	private formKey(query: SearchTypes.EngineQuery, page: number) {
 		return [
@@ -64,7 +68,7 @@ export class DuckDuckGoEngine extends SearchEngine<z.infer<typeof Settings>> {
 			};
 		} else {
 			const cached = DuckDuckGoEngine.nextForms.get(this.formKey(query, page));
-			if (!cached || cached.expires < Date.now()) return { results: [] };
+			if (!cached || cached.expires < Date.now()) return { results: [], cacheable: false };
 			form = { ...cached.form, kl: region, kp };
 		}
 

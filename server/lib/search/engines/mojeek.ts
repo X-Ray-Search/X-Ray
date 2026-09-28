@@ -17,6 +17,7 @@ export class MojeekEngine extends SearchEngine<z.infer<typeof Settings>> {
 		categories: ["general"],
 		settings: Settings,
 		features: { paging: true, timeRange: false, safeSearch: true, language: true },
+		defaultRateLimitPerMinute: 10,
 	});
 
 	async search(query: SearchTypes.EngineQuery): Promise<SearchTypes.EngineResponse> {

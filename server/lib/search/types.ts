@@ -67,6 +67,8 @@ export namespace SearchTypes {
 		suggestions?: string[];
 		corrections?: string[];
 		totalResults?: number;
+		/** `false` when the answer must not be cached (e.g. a page skipped for lack of a token). */
+		cacheable?: boolean;
 	}
 }
 
@@ -100,10 +102,21 @@ export namespace SearchModels {
 	export const EngineStatus = z.object({
 		slug: z.string(),
 		name: z.string(),
-		status: z.enum(["ok", "error", "timeout", "blocked", "suspended"]),
+		status: z
+			.enum(["ok", "error", "timeout", "blocked", "suspended", "throttled"])
+			.describe(
+				"`suspended`: paused after being blocked. `throttled`: its requests-per-minute limit is used up.",
+			),
 		time_ms: z.number(),
 		results: z.number(),
 		error: z.string().nullable(),
+		cached: z
+			.enum(["fresh", "stale"])
+			.nullable()
+			.describe(
+				"Set when the results came from the cache. `stale`: expired results served because the engine could not answer.",
+			),
+		fallback: z.boolean().describe("A fallback engine that stepped in for failing regular engines"),
 	});
 	export type EngineStatus = z.infer<typeof EngineStatus>;
 

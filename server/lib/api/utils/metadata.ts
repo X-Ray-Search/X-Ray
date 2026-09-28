@@ -14,6 +14,7 @@ export class RuntimeMetadata {
 		ai_config: SettingsModels.AIConfig.partial(),
 		secrets: SettingsModels.Secrets.partial(),
 		ddg_bangs_status: SettingsModels.BangDatasetStatus.partial(),
+		engine_defaults: SettingsModels.EngineDefaultsStatus.partial(),
 	} as const;
 
 	static async get<T extends RuntimeMetadata.Key>(key: T): Promise<RuntimeMetadata.Value<T>> {

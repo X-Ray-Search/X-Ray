@@ -4,7 +4,7 @@ import { validator as zValidator } from "hono-openapi";
 import { AIService } from "../../../../../../ai";
 import { DB } from "../../../../../../db";
 import { ProxyManager } from "../../../../../../proxy";
-import { SearchService } from "../../../../../../search/service";
+import { EngineRunCache } from "../../../../../../search/runCache";
 import { SettingsHandler } from "../../../../../../settings";
 import type { SettingsModels } from "../../../../../../settings/models";
 import { APIResponse } from "../../../../../utils/api-res";
@@ -60,6 +60,7 @@ router.put(
 		}
 		const updated = await SettingsHandler.updateInstance(body);
 		await ProxyManager.reload();
+		EngineRunCache.configure({ persistent: updated.search_cache_persistent });
 		return APIResponse.success(c, "Instance settings updated", updated);
 	},
 );
@@ -91,7 +92,6 @@ router.put(
 	async (c) => {
 		const body = c.req.valid("json") as AdminSettingsModel.SearchDefaults.Body;
 		const updated = await SettingsHandler.updateSearchDefaults(body);
-		SearchService.clearCache();
 		return APIResponse.success(c, "Search defaults updated", updated);
 	},
 );
@@ -175,15 +175,29 @@ router.post(
 	},
 );
 
+router.get(
+	"/cache",
+	APIRouteSpec.authenticated({
+		summary: "Get search cache statistics",
+		description: "Size of the engine result cache and hit counters since the last restart.",
+		tags: [DOCS_TAGS.ADMIN_API.SETTINGS],
+		responses: APIResponseSpec.describeBasic(
+			APIResponseSpec.success("Search cache statistics retrieved", AdminSettingsModel.CacheStats),
+		),
+	}),
+	async (c) => APIResponse.success(c, "Search cache statistics retrieved", EngineRunCache.stats()),
+);
+
 router.post(
 	"/cache/clear",
 	APIRouteSpec.authenticated({
 		summary: "Clear the search cache",
+		description: "Drops all cached engine results, in memory and on disk.",
 		tags: [DOCS_TAGS.ADMIN_API.SETTINGS],
 		responses: APIResponseSpec.describeBasic(APIResponseSpec.successNoData("Search cache cleared")),
 	}),
 	async (c) => {
-		SearchService.clearCache();
+		EngineRunCache.clear();
 		return APIResponse.successNoData(c, "Search cache cleared");
 	},
 );

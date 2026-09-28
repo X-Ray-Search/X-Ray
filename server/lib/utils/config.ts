@@ -125,9 +125,6 @@ export class ConfigHandler {
 		// Trust X-Forwarded-For / X-Real-IP from a reverse proxy in front of X-Ray.
 		TRUST_PROXY: CS.boolean().default(false),
 
-		// Seconds a search result page stays in the in-memory cache.
-		SEARCH_CACHE_TTL: CS.number().default(300),
-
 		// Skip fetching the DuckDuckGo bang dataset on boot (offline / test setups).
 		BANGS_DISABLE_AUTO_FETCH: CS.boolean().default(false),
 

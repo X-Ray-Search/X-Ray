@@ -4,12 +4,13 @@ import { SearchEngineRegistry } from "../server/lib/search/engines";
 import { BingCommon } from "../server/lib/search/engines/bing/common";
 import { BingImagesEngine, BingNewsEngine } from "../server/lib/search/engines/bing/media";
 import { BingEngine } from "../server/lib/search/engines/bing/web";
-import { BraveEngine } from "../server/lib/search/engines/brave";
+import { BraveEngine } from "../server/lib/search/engines/brave/web";
 import { DuckDuckGoCommon } from "../server/lib/search/engines/duckduckgo/common";
 import { DuckDuckGoEngine } from "../server/lib/search/engines/duckduckgo/web";
 import { MojeekEngine } from "../server/lib/search/engines/mojeek";
 import { YouTubeEngine } from "../server/lib/search/engines/youtube";
 import { SearchUtils } from "../server/lib/search/utils";
+import { testEngineConfig } from "./helpers/engineConfig";
 
 // Fixtures are trimmed copies of the markup the engines returned when the parsers were written.
 
@@ -118,16 +119,7 @@ describe("DuckDuckGo", () => {
 		let requests = 0;
 		const http = { html: async () => (requests++, { root: parse(""), raw: "" }) } as any;
 		const engine = new DuckDuckGoEngine(
-			{
-				id: 1,
-				slug: "ddg-test",
-				name: "DDG",
-				type: "duckduckgo",
-				categories: ["general"],
-				weight: 1,
-				timeoutMs: 1000,
-				proxyIds: [],
-			},
+			testEngineConfig({ slug: "ddg-test", name: "DDG", type: "duckduckgo" }),
 			{ region: "auto" },
 			http,
 		);
@@ -205,16 +197,7 @@ describe("Brave, Mojeek and YouTube", () => {
 
 	test("YouTube initial data", () => {
 		const engine = new YouTubeEngine(
-			{
-				id: 1,
-				slug: "yt",
-				name: "YouTube",
-				type: "youtube",
-				categories: ["videos"],
-				weight: 1,
-				timeoutMs: 1000,
-				proxyIds: [],
-			},
+			testEngineConfig({ slug: "yt", name: "YouTube", type: "youtube", categories: ["videos"] }),
 			{ privacy_embeds: true },
 		);
 		const [video, ...rest] = engine.parse(YOUTUBE_HTML);

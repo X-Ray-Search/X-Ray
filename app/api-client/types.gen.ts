@@ -229,10 +229,21 @@ export type GetSearchResponses = {
             engines: Array<{
                 slug: string;
                 name: string;
-                status: 'ok' | 'error' | 'timeout' | 'blocked' | 'suspended';
+                /**
+                 * `suspended`: paused after being blocked. `throttled`: its requests-per-minute limit is used up.
+                 */
+                status: 'ok' | 'error' | 'timeout' | 'blocked' | 'suspended' | 'throttled';
                 time_ms: number;
                 results: number;
                 error: string | null;
+                /**
+                 * Set when the results came from the cache. `stale`: expired results served because the engine could not answer.
+                 */
+                cached: 'fresh' | 'stale' | null;
+                /**
+                 * A fallback engine that stepped in for failing regular engines
+                 */
+                fallback: boolean;
             }>;
             number_of_results: number;
             time_ms: number;
@@ -2317,6 +2328,7 @@ export type GetAdminEnginesTypesResponses = {
             secret_fields: Array<string>;
             requires_configuration: boolean;
             default_timeout_ms: number;
+            default_rate_limit_per_minute: number;
         }>;
     };
 };
@@ -2348,6 +2360,8 @@ export type GetAdminEnginesResponses = {
             weight: number;
             timeout_ms: number;
             proxy_ids: Array<number>;
+            fallback: boolean;
+            rate_limit_per_minute: number;
             /**
              * Settings without secret fields
              */
@@ -2366,6 +2380,10 @@ export type GetAdminEnginesResponses = {
                 last_error_at: number | null;
                 last_success_at: number | null;
                 last_latency_ms: number | null;
+                /**
+                 * Upstream requests in the last 60 seconds
+                 */
+                requests_last_minute: number;
             };
             load_error: string | null;
         }>;
@@ -2384,6 +2402,14 @@ export type PostAdminEnginesData = {
         weight?: number;
         timeout_ms?: number;
         proxy_ids?: Array<number>;
+        /**
+         * Only query this engine when too few regular engines answer
+         */
+        fallback?: boolean;
+        /**
+         * Upstream requests per minute; 0 = unlimited
+         */
+        rate_limit_per_minute?: number;
         settings?: {
             [key: string]: unknown;
         };
@@ -2432,6 +2458,8 @@ export type PostAdminEnginesResponses = {
             weight: number;
             timeout_ms: number;
             proxy_ids: Array<number>;
+            fallback: boolean;
+            rate_limit_per_minute: number;
             /**
              * Settings without secret fields
              */
@@ -2450,6 +2478,10 @@ export type PostAdminEnginesResponses = {
                 last_error_at: number | null;
                 last_success_at: number | null;
                 last_latency_ms: number | null;
+                /**
+                 * Upstream requests in the last 60 seconds
+                 */
+                requests_last_minute: number;
             };
             load_error: string | null;
         };
@@ -2550,6 +2582,8 @@ export type GetAdminEnginesByEngineIdResponses = {
             weight: number;
             timeout_ms: number;
             proxy_ids: Array<number>;
+            fallback: boolean;
+            rate_limit_per_minute: number;
             /**
              * Settings without secret fields
              */
@@ -2568,6 +2602,10 @@ export type GetAdminEnginesByEngineIdResponses = {
                 last_error_at: number | null;
                 last_success_at: number | null;
                 last_latency_ms: number | null;
+                /**
+                 * Upstream requests in the last 60 seconds
+                 */
+                requests_last_minute: number;
             };
             load_error: string | null;
         };
@@ -2585,6 +2623,14 @@ export type PutAdminEnginesByEngineIdData = {
         weight?: number;
         timeout_ms?: number;
         proxy_ids?: Array<number>;
+        /**
+         * Only query this engine when too few regular engines answer
+         */
+        fallback?: boolean;
+        /**
+         * Upstream requests per minute; 0 = unlimited
+         */
+        rate_limit_per_minute?: number;
         settings?: {
             [key: string]: unknown;
         };
@@ -2643,6 +2689,8 @@ export type PutAdminEnginesByEngineIdResponses = {
             weight: number;
             timeout_ms: number;
             proxy_ids: Array<number>;
+            fallback: boolean;
+            rate_limit_per_minute: number;
             /**
              * Settings without secret fields
              */
@@ -2661,6 +2709,10 @@ export type PutAdminEnginesByEngineIdResponses = {
                 last_error_at: number | null;
                 last_success_at: number | null;
                 last_latency_ms: number | null;
+                /**
+                 * Upstream requests in the last 60 seconds
+                 */
+                requests_last_minute: number;
             };
             load_error: string | null;
         };
@@ -2712,7 +2764,10 @@ export type PostAdminEnginesByEngineIdTestResponses = {
         message: 'Engine tested';
         data: {
             ok: boolean;
-            status: 'ok' | 'error' | 'timeout' | 'blocked' | 'suspended';
+            /**
+             * `suspended`: paused after being blocked. `throttled`: its requests-per-minute limit is used up.
+             */
+            status: 'ok' | 'error' | 'timeout' | 'blocked' | 'suspended' | 'throttled';
             time_ms: number;
             results: number;
             error: string | null;
@@ -3201,6 +3256,26 @@ export type GetAdminSettingsInstanceResponses = {
              * Searches per minute and IP for unauthenticated users. 0 = unlimited.
              */
             public_rate_limit_per_minute: number;
+            /**
+             * Minutes an engine's results for a query are reused. 0 = no caching.
+             */
+            search_cache_ttl_minutes: number;
+            /**
+             * Cache duration for the news category, which goes stale faster.
+             */
+            news_cache_ttl_minutes: number;
+            /**
+             * Hours expired results stay available as a fallback while their engine is blocked, rate limited or failing. 0 = off.
+             */
+            search_cache_stale_hours: number;
+            /**
+             * Keep the result cache on disk (next to the database) so it survives restarts
+             */
+            search_cache_persistent: boolean;
+            /**
+             * Fallback engines are queried when fewer regular engines than this answer
+             */
+            min_healthy_engines: number;
         };
     };
 };
@@ -3232,6 +3307,26 @@ export type PutAdminSettingsInstanceData = {
          * Searches per minute and IP for unauthenticated users. 0 = unlimited.
          */
         public_rate_limit_per_minute?: number;
+        /**
+         * Minutes an engine's results for a query are reused. 0 = no caching.
+         */
+        search_cache_ttl_minutes?: number;
+        /**
+         * Cache duration for the news category, which goes stale faster.
+         */
+        news_cache_ttl_minutes?: number;
+        /**
+         * Hours expired results stay available as a fallback while their engine is blocked, rate limited or failing. 0 = off.
+         */
+        search_cache_stale_hours?: number;
+        /**
+         * Keep the result cache on disk (next to the database) so it survives restarts
+         */
+        search_cache_persistent?: boolean;
+        /**
+         * Fallback engines are queried when fewer regular engines than this answer
+         */
+        min_healthy_engines?: number;
     };
     path?: never;
     query?: never;
@@ -3283,6 +3378,26 @@ export type PutAdminSettingsInstanceResponses = {
              * Searches per minute and IP for unauthenticated users. 0 = unlimited.
              */
             public_rate_limit_per_minute: number;
+            /**
+             * Minutes an engine's results for a query are reused. 0 = no caching.
+             */
+            search_cache_ttl_minutes: number;
+            /**
+             * Cache duration for the news category, which goes stale faster.
+             */
+            news_cache_ttl_minutes: number;
+            /**
+             * Hours expired results stay available as a fallback while their engine is blocked, rate limited or failing. 0 = off.
+             */
+            search_cache_stale_hours: number;
+            /**
+             * Keep the result cache on disk (next to the database) so it survives restarts
+             */
+            search_cache_persistent: boolean;
+            /**
+             * Fallback engines are queried when fewer regular engines than this answer
+             */
+            min_healthy_engines: number;
         };
     };
 };
@@ -3661,6 +3776,59 @@ export type PostAdminSettingsAiModelsResponses = {
 };
 
 export type PostAdminSettingsAiModelsResponse = PostAdminSettingsAiModelsResponses[keyof PostAdminSettingsAiModelsResponses];
+
+export type GetAdminSettingsCacheData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/admin/settings/cache';
+};
+
+export type GetAdminSettingsCacheResponses = {
+    /**
+     * Search cache statistics retrieved
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Search cache statistics retrieved';
+        data: {
+            /**
+             * Whether the disk tier is in use
+             */
+            persistent: boolean;
+            memory_entries: number;
+            disk_entries: number;
+            disk_bytes: number;
+            /**
+             * Engine requests currently running that others can join
+             */
+            in_flight: number;
+            /**
+             * Engine runs answered from the cache
+             */
+            hits: number;
+            /**
+             * Engine runs that had to ask the engine
+             */
+            misses: number;
+            /**
+             * Times expired results stood in for an unavailable engine
+             */
+            stale_served: number;
+            /**
+             * Requests that joined an identical one already running
+             */
+            coalesced: number;
+            /**
+             * When the counters started (epoch ms)
+             */
+            since: number;
+        };
+    };
+};
+
+export type GetAdminSettingsCacheResponse = GetAdminSettingsCacheResponses[keyof GetAdminSettingsCacheResponses];
 
 export type PostAdminSettingsCacheClearData = {
     body?: never;

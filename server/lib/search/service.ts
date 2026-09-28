@@ -2,26 +2,36 @@ import { BangService } from "../bangs";
 import { InstantAnswerService } from "../instant-answers";
 import { SettingsHandler } from "../settings";
 import type { SettingsModels } from "../settings/models";
-import { ConfigHandler } from "../utils/config";
 import { SearchAggregator } from "./aggregator";
-import { TTLCache } from "./cache";
 import { ImageProxy } from "./imageProxy";
 import { SearchEngineManager } from "./manager";
+import { EngineRunCache } from "./runCache";
 import type { SearchModels, SearchTypes } from "./types";
 
 /**
- * The search pipeline: bangs → engine selection → cache → engines + instant answers in
- * parallel → media rewriting. Used by the v1 API, the SearXNG compatible API and AI answers.
+ * The search pipeline: bangs → engine selection → engines (through the run cache) + instant
+ * answers in parallel → media rewriting. Used by the v1 API, the SearXNG compatible API and AI
+ * answers.
  */
 export class SearchService {
-	private static readonly cache = new TTLCache<SearchService.CachedPage>(1000, 300_000);
-
 	static clearCache() {
-		this.cache.clear();
+		EngineRunCache.clear();
 	}
 
 	static pruneCache() {
-		this.cache.prune();
+		EngineRunCache.prune();
+	}
+
+	/** The cache policy for a category, from the instance settings. */
+	static cachePolicy(
+		settings: SettingsModels.Instance,
+		category: SearchTypes.Category,
+	): EngineRunCache.Policy {
+		const minutes =
+			category === "news"
+				? Math.min(settings.news_cache_ttl_minutes, settings.search_cache_ttl_minutes)
+				: settings.search_cache_ttl_minutes;
+		return { freshMs: minutes * 60_000, staleMs: settings.search_cache_stale_hours * 3_600_000 };
 	}
 
 	static async search(
@@ -140,7 +150,7 @@ export class SearchService {
 		};
 	}
 
-	/** Run (or fetch from cache) the engines for one results page. */
+	/** Run the engines (each through the run cache) for one results page. */
 	private static async searchPage(
 		request: SearchService.Request & { query: string; category: SearchTypes.Category; page: number },
 		context: SearchService.Context,
@@ -165,24 +175,13 @@ export class SearchService {
 			timeRange: request.timeRange ?? null,
 		};
 
-		const key = JSON.stringify([
-			engineQuery.query.toLowerCase(),
-			engineQuery.category,
-			engineQuery.page,
-			engineQuery.language,
-			engineQuery.safesearch,
-			engineQuery.timeRange,
-			engines.map((e) => e.config.slug).sort(),
-		]);
-		const hit = this.cache.get(key);
-		if (hit) return { outcome: hit.outcome, cached: true };
-
-		const outcome = await SearchAggregator.run(engineQuery, engines);
-		// Don't cache pages where every engine failed — the next try may work.
-		if (outcome.engines.some((e) => e.status === "ok")) {
-			this.cache.set(key, { outcome }, (ConfigHandler.getConfig()?.SEARCH_CACHE_TTL ?? 300) * 1000);
-		}
-		return { outcome, cached: false };
+		const settings = await SettingsHandler.getInstance();
+		EngineRunCache.configure({ persistent: settings.search_cache_persistent });
+		const outcome = await SearchAggregator.run(engineQuery, engines, {
+			cache: this.cachePolicy(settings, request.category),
+			minHealthy: settings.min_healthy_engines,
+		});
+		return { outcome, cached: outcome.cached };
 	}
 
 	private static async rewriteAnswers(answers: SearchModels.InstantAnswer[]) {
@@ -220,9 +219,5 @@ export namespace SearchService {
 		resolveBangs?: boolean;
 		/** Set false for API consumers that need the original media URLs. */
 		imageProxy?: boolean;
-	}
-
-	export interface CachedPage {
-		outcome: SearchAggregator.Outcome;
 	}
 }

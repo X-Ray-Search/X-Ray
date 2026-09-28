@@ -169,7 +169,7 @@ describe("Engines", () => {
 	});
 
 	test("seeds working defaults on an empty table", async () => {
-		await SearchEngineManager.seedDefaultsIfEmpty();
+		await SearchEngineManager.seedDefaults();
 		const engines = await makeAPIRequest<AdminEnginesModel.Engine[]>("/v1/admin/engines", {
 			authToken: adminToken,
 		});

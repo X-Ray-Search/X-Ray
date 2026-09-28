@@ -66,7 +66,7 @@ export class EngineHttp {
 					method: init.method ?? (body ? "POST" : "GET"),
 					headers,
 					body,
-					redirect: "follow",
+					redirect: init.redirect ?? "follow",
 					signal: AbortSignal.any(signals),
 				},
 				{ proxyIds: this.options.proxyIds },
@@ -76,7 +76,11 @@ export class EngineHttp {
 		}
 
 		if (res.status === 429 || res.status === 403) {
-			throw new EngineError("blocked", `Blocked by ${new URL(url).host} (HTTP ${res.status})`);
+			throw new EngineError(
+				"blocked",
+				`Blocked by ${new URL(url).host} (HTTP ${res.status})`,
+				EngineHttp.retryAfterMs(res.headers.get("retry-after")),
+			);
 		}
 		if (!res.ok && !init.acceptStatus?.includes(res.status)) {
 			throw new EngineError("http", `HTTP ${res.status} from ${new URL(url).host}`);
@@ -112,11 +116,22 @@ export class EngineHttp {
 		const raw = await this.text(url, init);
 		return { root: parseHTML(raw), raw };
 	}
+
+	/** Parse a `Retry-After` header (seconds or an HTTP date) into milliseconds. */
+	static retryAfterMs(header: string | null, now = Date.now()): number | undefined {
+		if (!header) return undefined;
+		const seconds = Number(header.trim());
+		if (Number.isFinite(seconds)) return seconds > 0 ? seconds * 1000 : undefined;
+		const date = Date.parse(header);
+		return Number.isNaN(date) || date <= now ? undefined : date - now;
+	}
 }
 
 export namespace EngineHttp {
 	export interface RequestInit {
 		method?: string;
+		/** `manual` returns 3xx responses as-is (e.g. to read a `Set-Cookie`); list them in `acceptStatus`. */
+		redirect?: "follow" | "manual";
 		headers?: Record<string, string>;
 		cookies?: Record<string, string>;
 		body?: string;

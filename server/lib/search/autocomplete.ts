@@ -2,7 +2,7 @@ import { ProxyManager } from "../proxy";
 import type { SettingsModels } from "../settings/models";
 import { AppConstants } from "../utils/constants";
 import { Logger } from "../utils/logger";
-import { TTLCache } from "./cache";
+import { InFlight, TTLCache } from "./cache";
 import { DuckDuckGoCommon } from "./engines/duckduckgo/common";
 import { SearchUtils } from "./utils";
 
@@ -14,6 +14,7 @@ type ProviderID = Exclude<(typeof SettingsModels.AutocompleteProviders)[number],
  */
 export class AutocompleteService {
 	private static readonly cache = new TTLCache<string[]>(2000, 10 * 60_000);
+	private static readonly inflight = new InFlight<string[]>();
 
 	static readonly PROVIDERS: Record<
 		ProviderID,
@@ -52,6 +53,16 @@ export class AutocompleteService {
 		const cached = this.cache.get(key);
 		if (cached) return cached;
 
+		// Several tabs/clients typing the same prefix share one upstream request.
+		return (await this.inflight.run(key, () => this.fetch(provider, q, locale, key))).value;
+	}
+
+	private static async fetch(
+		provider: ProviderID,
+		q: string,
+		locale: string,
+		key: string,
+	): Promise<string[]> {
 		try {
 			const res = await ProxyManager.fetch(this.PROVIDERS[provider].url(q, locale), {
 				headers: {

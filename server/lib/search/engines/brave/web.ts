@@ -1,9 +1,10 @@
 import type { HTMLElement } from "node-html-parser";
 import { z } from "zod";
-import { EngineError } from "../errors";
-import type { SearchTypes } from "../types";
-import { SearchUtils } from "../utils";
-import { SearchEngine } from "./base";
+import { EngineError } from "../../errors";
+import type { SearchTypes } from "../../types";
+import { SearchUtils } from "../../utils";
+import { SearchEngine } from "../base";
+import { BraveCommon } from "./common";
 
 const Settings = z.object({});
 
@@ -17,33 +18,23 @@ export class BraveEngine extends SearchEngine<z.infer<typeof Settings>> {
 		categories: ["general"],
 		settings: Settings,
 		features: { paging: true, timeRange: true, safeSearch: true, language: true },
+		// All Brave pages share one IP budget and Brave rate-limits quickly.
+		defaultRateLimitPerMinute: 15,
 	});
 
 	async search(query: SearchTypes.EngineQuery): Promise<SearchTypes.EngineResponse> {
 		const params = new URLSearchParams({ q: query.query, source: "web" });
 		if (query.page > 1) params.set("offset", String(query.page - 1));
-		if (query.timeRange) {
-			params.set("tf", { day: "pd", week: "pw", month: "pm", year: "py" }[query.timeRange]);
-		}
-
-		const { language, region } = SearchUtils.parseLocale(query.language);
-		const cookies: Record<string, string> = {
-			safesearch: ["off", "moderate", "strict"][query.safesearch]!,
-			useLocation: "0",
-			summarizer: "0",
-		};
-		if (language) {
-			cookies.country = (region ?? SearchUtils.defaultRegion(language)).toLowerCase();
-			cookies.ui_lang = `${language}-${cookies.country}`;
-		}
+		const tf = BraveCommon.timeFilter(query.timeRange);
+		if (tf) params.set("tf", tf);
 
 		const { root, raw } = await this.http.html(`https://search.brave.com/search?${params}`, {
 			language: query.language,
-			cookies,
+			cookies: { ...BraveCommon.cookies(query), summarizer: "0" },
 		});
 
 		const results = BraveEngine.parseResults(root);
-		if (!results.length && /captcha/i.test(raw)) {
+		if (!results.length && BraveCommon.isCaptcha(raw)) {
 			throw new EngineError("blocked", "Brave presented a captcha");
 		}
 		return { results };

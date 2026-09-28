@@ -194,11 +194,14 @@ export const zGetSearchResponse = z.object({
                 'error',
                 'timeout',
                 'blocked',
-                'suspended'
+                'suspended',
+                'throttled'
             ]),
             time_ms: z.number(),
             results: z.number(),
-            error: z.string().nullable()
+            error: z.string().nullable(),
+            cached: z.enum(['fresh', 'stale']).nullable(),
+            fallback: z.boolean()
         })),
         number_of_results: z.number(),
         time_ms: z.number(),
@@ -1229,7 +1232,8 @@ export const zGetAdminEnginesTypesResponse = z.object({
         default_settings: z.record(z.string(), z.unknown()),
         secret_fields: z.array(z.string()),
         requires_configuration: z.boolean(),
-        default_timeout_ms: z.number()
+        default_timeout_ms: z.number(),
+        default_rate_limit_per_minute: z.number()
     }))
 });
 
@@ -1255,6 +1259,8 @@ export const zGetAdminEnginesResponse = z.object({
         weight: z.number(),
         timeout_ms: z.number(),
         proxy_ids: z.array(z.number()),
+        fallback: z.boolean(),
+        rate_limit_per_minute: z.number(),
         settings: z.record(z.string(), z.unknown()),
         secrets_set: z.array(z.string()),
         created_at: z.number(),
@@ -1264,7 +1270,8 @@ export const zGetAdminEnginesResponse = z.object({
             last_error: z.string().nullable(),
             last_error_at: z.number().nullable(),
             last_success_at: z.number().nullable(),
-            last_latency_ms: z.number().nullable()
+            last_latency_ms: z.number().nullable(),
+            requests_last_minute: z.number()
         }),
         load_error: z.string().nullable()
     }))
@@ -1284,6 +1291,8 @@ export const zPostAdminEnginesBody = z.object({
     weight: z.number().gte(0).lte(10).optional().default(1),
     timeout_ms: z.int().gte(500).lte(30000).optional().default(4000),
     proxy_ids: z.array(z.int().gt(0).lte(9007199254740991)).max(50).optional().default([]),
+    fallback: z.boolean().optional().default(false),
+    rate_limit_per_minute: z.int().gte(0).lte(10000).optional(),
     settings: z.record(z.string(), z.unknown()).optional().default({})
 });
 
@@ -1309,6 +1318,8 @@ export const zPostAdminEnginesResponse = z.object({
         weight: z.number(),
         timeout_ms: z.number(),
         proxy_ids: z.array(z.number()),
+        fallback: z.boolean(),
+        rate_limit_per_minute: z.number(),
         settings: z.record(z.string(), z.unknown()),
         secrets_set: z.array(z.string()),
         created_at: z.number(),
@@ -1318,7 +1329,8 @@ export const zPostAdminEnginesResponse = z.object({
             last_error: z.string().nullable(),
             last_error_at: z.number().nullable(),
             last_success_at: z.number().nullable(),
-            last_latency_ms: z.number().nullable()
+            last_latency_ms: z.number().nullable(),
+            requests_last_minute: z.number()
         }),
         load_error: z.string().nullable()
     })
@@ -1364,6 +1376,8 @@ export const zGetAdminEnginesByEngineIdResponse = z.object({
         weight: z.number(),
         timeout_ms: z.number(),
         proxy_ids: z.array(z.number()),
+        fallback: z.boolean(),
+        rate_limit_per_minute: z.number(),
         settings: z.record(z.string(), z.unknown()),
         secrets_set: z.array(z.string()),
         created_at: z.number(),
@@ -1373,7 +1387,8 @@ export const zGetAdminEnginesByEngineIdResponse = z.object({
             last_error: z.string().nullable(),
             last_error_at: z.number().nullable(),
             last_success_at: z.number().nullable(),
-            last_latency_ms: z.number().nullable()
+            last_latency_ms: z.number().nullable(),
+            requests_last_minute: z.number()
         }),
         load_error: z.string().nullable()
     })
@@ -1382,17 +1397,19 @@ export const zGetAdminEnginesByEngineIdResponse = z.object({
 export const zPutAdminEnginesByEngineIdBody = z.object({
     slug: z.string().regex(/^[a-z0-9][a-z0-9-]{1,47}$/).optional(),
     name: z.string().min(1).max(64).optional(),
-    enabled: z.boolean().optional().default(true),
+    enabled: z.boolean().optional(),
     categories: z.array(z.enum([
         'general',
         'images',
         'news',
         'videos'
     ])).min(1).optional(),
-    weight: z.number().gte(0).lte(10).optional().default(1),
-    timeout_ms: z.int().gte(500).lte(30000).optional().default(4000),
-    proxy_ids: z.array(z.int().gt(0).lte(9007199254740991)).max(50).optional().default([]),
-    settings: z.record(z.string(), z.unknown()).optional().default({})
+    weight: z.number().gte(0).lte(10).optional(),
+    timeout_ms: z.int().gte(500).lte(30000).optional(),
+    proxy_ids: z.array(z.int().gt(0).lte(9007199254740991)).max(50).optional(),
+    fallback: z.boolean().optional(),
+    rate_limit_per_minute: z.int().gte(0).lte(10000).optional(),
+    settings: z.record(z.string(), z.unknown()).optional()
 });
 
 export const zPutAdminEnginesByEngineIdPath = z.object({
@@ -1421,6 +1438,8 @@ export const zPutAdminEnginesByEngineIdResponse = z.object({
         weight: z.number(),
         timeout_ms: z.number(),
         proxy_ids: z.array(z.number()),
+        fallback: z.boolean(),
+        rate_limit_per_minute: z.number(),
         settings: z.record(z.string(), z.unknown()),
         secrets_set: z.array(z.string()),
         created_at: z.number(),
@@ -1430,7 +1449,8 @@ export const zPutAdminEnginesByEngineIdResponse = z.object({
             last_error: z.string().nullable(),
             last_error_at: z.number().nullable(),
             last_success_at: z.number().nullable(),
-            last_latency_ms: z.number().nullable()
+            last_latency_ms: z.number().nullable(),
+            requests_last_minute: z.number()
         }),
         load_error: z.string().nullable()
     })
@@ -1464,7 +1484,8 @@ export const zPostAdminEnginesByEngineIdTestResponse = z.object({
             'error',
             'timeout',
             'blocked',
-            'suspended'
+            'suspended',
+            'throttled'
         ]),
         time_ms: z.number(),
         results: z.number(),
@@ -1690,7 +1711,12 @@ export const zGetAdminSettingsInstanceResponse = z.object({
         default_proxy_ids: z.array(z.int().gt(0).lte(9007199254740991)),
         ddg_bangs_auto_update: z.boolean(),
         ddg_bangs_update_interval_hours: z.int().gte(1).lte(2160),
-        public_rate_limit_per_minute: z.int().gte(0).lte(10000)
+        public_rate_limit_per_minute: z.int().gte(0).lte(10000),
+        search_cache_ttl_minutes: z.int().gte(0).lte(10080),
+        news_cache_ttl_minutes: z.int().gte(0).lte(1440),
+        search_cache_stale_hours: z.int().gte(0).lte(720),
+        search_cache_persistent: z.boolean(),
+        min_healthy_engines: z.int().gte(1).lte(20)
     })
 });
 
@@ -1702,7 +1728,12 @@ export const zPutAdminSettingsInstanceBody = z.object({
     default_proxy_ids: z.array(z.int().gt(0).lte(9007199254740991)).optional(),
     ddg_bangs_auto_update: z.boolean().optional(),
     ddg_bangs_update_interval_hours: z.int().gte(1).lte(2160).optional(),
-    public_rate_limit_per_minute: z.int().gte(0).lte(10000).optional()
+    public_rate_limit_per_minute: z.int().gte(0).lte(10000).optional(),
+    search_cache_ttl_minutes: z.int().gte(0).lte(10080).optional(),
+    news_cache_ttl_minutes: z.int().gte(0).lte(1440).optional(),
+    search_cache_stale_hours: z.int().gte(0).lte(720).optional(),
+    search_cache_persistent: z.boolean().optional(),
+    min_healthy_engines: z.int().gte(1).lte(20).optional()
 });
 
 /**
@@ -1720,7 +1751,12 @@ export const zPutAdminSettingsInstanceResponse = z.object({
         default_proxy_ids: z.array(z.int().gt(0).lte(9007199254740991)),
         ddg_bangs_auto_update: z.boolean(),
         ddg_bangs_update_interval_hours: z.int().gte(1).lte(2160),
-        public_rate_limit_per_minute: z.int().gte(0).lte(10000)
+        public_rate_limit_per_minute: z.int().gte(0).lte(10000),
+        search_cache_ttl_minutes: z.int().gte(0).lte(10080),
+        news_cache_ttl_minutes: z.int().gte(0).lte(1440),
+        search_cache_stale_hours: z.int().gte(0).lte(720),
+        search_cache_persistent: z.boolean(),
+        min_healthy_engines: z.int().gte(1).lte(20)
     })
 });
 
@@ -1953,6 +1989,27 @@ export const zPostAdminSettingsAiModelsResponse = z.object({
     data: z.object({
         models: z.array(z.string()),
         error: z.string().nullable()
+    })
+});
+
+/**
+ * Search cache statistics retrieved
+ */
+export const zGetAdminSettingsCacheResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Search cache statistics retrieved'),
+    data: z.object({
+        persistent: z.boolean(),
+        memory_entries: z.number(),
+        disk_entries: z.number(),
+        disk_bytes: z.number(),
+        in_flight: z.number(),
+        hits: z.number(),
+        misses: z.number(),
+        stale_served: z.number(),
+        coalesced: z.number(),
+        since: z.number()
     })
 });
 

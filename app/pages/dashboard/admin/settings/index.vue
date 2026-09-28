@@ -1,17 +1,22 @@
 <script setup lang="ts">
-import type { GetAdminSettingsInstanceResponses } from "~/api-client";
+import type {
+	GetAdminSettingsCacheResponses,
+	GetAdminSettingsInstanceResponses,
+} from "~/api-client";
 import { useInstanceStore } from "~/composables/stores/useInstanceStore";
 import type { AdminProxy } from "~/utils/types";
 
 type InstanceSettings = GetAdminSettingsInstanceResponses["200"]["data"];
+type CacheStats = GetAdminSettingsCacheResponses["200"]["data"];
 
 useSeoMeta({ title: "Instance settings | X-Ray" });
 
 const toast = useToast();
 
-const [settingsRes, proxiesRes] = await Promise.all([
+const [settingsRes, proxiesRes, cacheRes] = await Promise.all([
 	useAPI((api) => api.getAdminSettingsInstance({})),
 	useAPI((api) => api.getAdminProxies({})),
+	useAPI((api) => api.getAdminSettingsCache({})),
 ]);
 if (!settingsRes.success) {
 	throw createError({ statusCode: settingsRes.code, statusMessage: settingsRes.message });
@@ -51,8 +56,25 @@ async function save() {
 	}
 	Object.assign(form, res.data);
 	saved.value = JSON.stringify(form);
-	await useInstanceStore().refresh();
+	await Promise.all([useInstanceStore().refresh(), refreshCacheStats()]);
 	toast.add({ title: "Settings saved", icon: "i-lucide-check", color: "success" });
+}
+
+const cacheStats = ref<CacheStats | null>(cacheRes.success ? cacheRes.data : null);
+const hitRate = computed(() => {
+	const stats = cacheStats.value;
+	const lookups = (stats?.hits ?? 0) + (stats?.misses ?? 0);
+	return stats && lookups ? Math.round((stats.hits / lookups) * 100) : null;
+});
+
+async function refreshCacheStats() {
+	const res = await useAPI((api) => api.getAdminSettingsCache({}));
+	if (res.success) cacheStats.value = res.data;
+}
+
+function formatBytes(bytes: number) {
+	if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+	return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
 const clearing = ref(false);
@@ -64,6 +86,7 @@ async function clearCache() {
 		title: res.success ? "Search cache cleared" : "Failed",
 		color: res.success ? "success" : "error",
 	});
+	await refreshCacheStats();
 }
 
 const origin = import.meta.client ? window.location.origin : "";
@@ -144,7 +167,71 @@ const rowClass = "flex items-start justify-between gap-4 py-4 first:pt-0 last:pb
 						class="w-full sm:w-72"
 					/>
 				</UFormField>
-				<UFormField label="Search result cache" description="Clear cached result pages (e.g. after changing engines)." :class="rowClass">
+			</div>
+		</section>
+
+		<section :class="sectionClass">
+			<div class="border-b border-slate-800 px-6 py-4">
+				<h3 class="font-medium text-white">Search cache & fallbacks</h3>
+				<p class="text-sm text-slate-400">
+					Every engine's answer is cached on its own, so repeated searches don't reach the engines and
+					blocked or rate-limited engines fall back to earlier results.
+				</p>
+			</div>
+			<div class="divide-y divide-slate-800 p-6">
+				<UFormField
+					label="Cache results for (minutes)"
+					description="How long an engine's results for a query are reused. 0 turns caching off."
+					:class="rowClass"
+				>
+					<UInputNumber v-model="form.search_cache_ttl_minutes" :min="0" :max="10080" class="w-full sm:w-40" />
+				</UFormField>
+				<UFormField label="News (minutes)" description="News goes stale faster." :class="rowClass">
+					<UInputNumber
+						v-model="form.news_cache_ttl_minutes"
+						:min="0"
+						:max="1440"
+						class="w-full sm:w-40"
+						:disabled="!form.search_cache_ttl_minutes"
+					/>
+				</UFormField>
+				<UFormField
+					label="Keep expired results as a fallback (hours)"
+					description="Served while their engine is blocked, rate limited or failing. 0 = off."
+					:class="rowClass"
+				>
+					<UInputNumber
+						v-model="form.search_cache_stale_hours"
+						:min="0"
+						:max="720"
+						class="w-full sm:w-40"
+						:disabled="!form.search_cache_ttl_minutes"
+					/>
+				</UFormField>
+				<UFormField
+					label="Keep the cache on disk"
+					description="Stored in search-cache.sqlite next to the database, so it survives restarts."
+					:class="rowClass"
+				>
+					<USwitch v-model="form.search_cache_persistent" :disabled="!form.search_cache_ttl_minutes" />
+				</UFormField>
+				<UFormField
+					label="Engines that must answer"
+					description="Fallback engines (marked under Engines) are queried when fewer regular engines deliver results."
+					:class="rowClass"
+				>
+					<UInputNumber v-model="form.min_healthy_engines" :min="1" :max="20" class="w-full sm:w-40" />
+				</UFormField>
+				<UFormField label="Cache" :class="rowClass">
+					<template #description>
+						<span v-if="cacheStats">
+							{{ formatNumber(cacheStats.memory_entries) }} in memory<template v-if="cacheStats.persistent">,
+								{{ formatNumber(cacheStats.disk_entries) }} on disk ({{ formatBytes(cacheStats.disk_bytes) }})</template>.
+							Since the restart {{ timeAgo(cacheStats.since) }}: {{ formatNumber(cacheStats.hits) }} hits<template v-if="hitRate !== null">
+								({{ hitRate }}%)</template>, {{ formatNumber(cacheStats.coalesced) }} joined requests,
+							{{ formatNumber(cacheStats.stale_served) }} times served older results.
+						</span>
+					</template>
 					<UButton label="Clear cache" icon="i-lucide-eraser" color="neutral" variant="soft" :loading="clearing" @click="clearCache" />
 				</UFormField>
 			</div>

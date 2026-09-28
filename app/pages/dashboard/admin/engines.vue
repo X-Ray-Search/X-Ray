@@ -55,13 +55,27 @@ function health(engine: AdminEngine): {
 	}
 	if (h.consecutive_failures > 0)
 		return { color: "error", label: "Failing", detail: h.last_error ?? "" };
+	if (engine.rate_limit_per_minute && h.requests_last_minute >= engine.rate_limit_per_minute) {
+		return {
+			color: "warning",
+			label: "Rate limited",
+			detail: `${h.requests_last_minute} of ${engine.rate_limit_per_minute} requests in the last minute — serving cached results or fallbacks`,
+		};
+	}
 	if (h.last_success_at)
 		return {
 			color: "success",
 			label: `${h.last_latency_ms} ms`,
-			detail: `Last success ${timeAgo(h.last_success_at)}`,
+			detail: `Last success ${timeAgo(h.last_success_at)}${usage(engine)}`,
 		};
 	return { color: "neutral", label: "Not used yet", detail: "" };
+}
+
+function usage(engine: AdminEngine) {
+	const used = engine.health.requests_last_minute;
+	if (engine.rate_limit_per_minute)
+		return ` · ${used}/${engine.rate_limit_per_minute} requests this minute`;
+	return used ? ` · ${used} requests this minute` : "";
 }
 
 async function toggle(engine: AdminEngine, enabled: boolean) {
@@ -88,6 +102,8 @@ const form = reactive({
 	weight: 1,
 	timeout_ms: 4000,
 	proxy_ids: [] as number[],
+	fallback: false,
+	rate_limit_per_minute: 0,
 	settings: {} as Record<string, any>,
 });
 
@@ -110,6 +126,8 @@ function openEditor(engine?: AdminEngine) {
 		weight: engine?.weight ?? 1,
 		timeout_ms: engine?.timeout_ms ?? type?.default_timeout_ms ?? 4000,
 		proxy_ids: engine ? [...engine.proxy_ids] : [],
+		fallback: engine?.fallback ?? false,
+		rate_limit_per_minute: engine?.rate_limit_per_minute ?? type?.default_rate_limit_per_minute ?? 0,
 		settings: engine ? { ...engine.settings } : { ...(type?.default_settings ?? {}) },
 	});
 	editorOpen.value = true;
@@ -123,6 +141,7 @@ watch(
 		form.name = definition?.name ?? form.name;
 		form.categories = [...(definition?.categories ?? [])];
 		form.timeout_ms = definition?.default_timeout_ms ?? 4000;
+		form.rate_limit_per_minute = definition?.default_rate_limit_per_minute ?? 0;
 		form.settings = { ...(definition?.default_settings ?? {}) };
 		if (!form.slug || form.slug === previous.replace(/_/g, "-")) form.slug = type.replace(/_/g, "-");
 	},
@@ -147,6 +166,8 @@ async function save() {
 						weight: form.weight,
 						timeout_ms: form.timeout_ms,
 						proxy_ids: form.proxy_ids,
+						fallback: form.fallback,
+						rate_limit_per_minute: form.rate_limit_per_minute,
 						settings: form.settings,
 					},
 				}),
@@ -250,11 +271,15 @@ async function onDelete() {
 
 					<template #name-cell="{ row }">
 						<div class="min-w-0">
-							<p class="font-medium text-white">{{ row.original.name }}</p>
+							<p class="flex items-center gap-2 font-medium text-white">
+								{{ row.original.name }}
+								<UBadge v-if="row.original.fallback" label="Fallback" icon="i-lucide-life-buoy" size="sm" variant="subtle" color="neutral" />
+							</p>
 							<p class="font-mono text-xs text-slate-500">
 								{{ row.original.slug }} · {{ typeOf(row.original.engine_type)?.name ?? row.original.engine_type }}
 								<span v-if="row.original.proxy_ids.length"> · {{ row.original.proxy_ids.length }} prox{{ row.original.proxy_ids.length === 1 ? "y" : "ies" }}</span>
 								<span v-if="row.original.weight !== 1"> · weight {{ row.original.weight }}</span>
+								<span v-if="row.original.rate_limit_per_minute"> · ≤ {{ row.original.rate_limit_per_minute }}/min</span>
 							</p>
 						</div>
 					</template>
@@ -340,6 +365,15 @@ async function onDelete() {
 				</UFormField>
 				<UFormField label="Timeout (ms)">
 					<UInputNumber v-model="form.timeout_ms" :min="500" :max="30000" :step="500" class="w-full" />
+				</UFormField>
+			</div>
+
+			<div class="grid gap-4 sm:grid-cols-2">
+				<UFormField label="Rate limit (requests/min)" description="Upstream requests per minute; 0 = unlimited. Over the limit, cached results or fallbacks are used.">
+					<UInputNumber v-model="form.rate_limit_per_minute" :min="0" :max="10000" class="w-full" />
+				</UFormField>
+				<UFormField label="Fallback engine" description="Only query it when too few regular engines answer (Settings › Instance).">
+					<USwitch v-model="form.fallback" />
 				</UFormField>
 			</div>
 

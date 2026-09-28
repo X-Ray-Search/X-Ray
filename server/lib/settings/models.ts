@@ -33,6 +33,35 @@ export namespace SettingsModels {
 			.min(0)
 			.max(10_000)
 			.describe("Searches per minute and IP for unauthenticated users. 0 = unlimited."),
+		search_cache_ttl_minutes: z
+			.number()
+			.int()
+			.min(0)
+			.max(7 * 24 * 60)
+			.describe("Minutes an engine's results for a query are reused. 0 = no caching."),
+		news_cache_ttl_minutes: z
+			.number()
+			.int()
+			.min(0)
+			.max(24 * 60)
+			.describe("Cache duration for the news category, which goes stale faster."),
+		search_cache_stale_hours: z
+			.number()
+			.int()
+			.min(0)
+			.max(30 * 24)
+			.describe(
+				"Hours expired results stay available as a fallback while their engine is blocked, rate limited or failing. 0 = off.",
+			),
+		search_cache_persistent: z
+			.boolean()
+			.describe("Keep the result cache on disk (next to the database) so it survives restarts"),
+		min_healthy_engines: z
+			.number()
+			.int()
+			.min(1)
+			.max(20)
+			.describe("Fallback engines are queried when fewer regular engines than this answer"),
 	});
 	export type Instance = z.infer<typeof Instance>;
 
@@ -45,6 +74,11 @@ export namespace SettingsModels {
 		ddg_bangs_auto_update: true,
 		ddg_bangs_update_interval_hours: 24 * 7,
 		public_rate_limit_per_minute: 60,
+		search_cache_ttl_minutes: 60,
+		news_cache_ttl_minutes: 10,
+		search_cache_stale_hours: 24,
+		search_cache_persistent: true,
+		min_healthy_engines: 2,
 	};
 
 	// ------------------------------------------------- search preferences (instance + per user)
@@ -157,6 +191,12 @@ export namespace SettingsModels {
 		image_proxy_key: z.string().min(32),
 	});
 	export type Secrets = z.infer<typeof Secrets>;
+
+	/** Which set of default engines this instance has been given (see `SearchEngineManager`). */
+	export const EngineDefaultsStatus = z.object({
+		version: z.number().int().min(0),
+	});
+	export type EngineDefaultsStatus = z.infer<typeof EngineDefaultsStatus>;
 
 	export const BangDatasetStatus = z.object({
 		updated_at: z.number().nullable(),

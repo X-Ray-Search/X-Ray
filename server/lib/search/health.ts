@@ -1,5 +1,6 @@
 import { Logger } from "../utils/logger";
 import type { EngineError } from "./errors";
+import { EngineThrottle } from "./throttle";
 
 /**
  * Per-engine health tracking. An engine that gets blocked (captcha, 403, 429) is suspended with
@@ -53,8 +54,9 @@ export class EngineHealth {
 		let suspendFor = 0;
 		if (error.kind === "blocked") {
 			state.consecutiveBlocks++;
+			// Back off at least as long as the upstream asked for (`Retry-After`).
 			suspendFor = Math.min(
-				this.BASE_SUSPENSION_MS * 2 ** (state.consecutiveBlocks - 1),
+				Math.max(this.BASE_SUSPENSION_MS * 2 ** (state.consecutiveBlocks - 1), error.retryAfterMs ?? 0),
 				this.MAX_SUSPENSION_MS,
 			);
 		} else if (state.consecutiveFailures >= this.FAILURES_BEFORE_SUSPENSION) {
@@ -82,6 +84,7 @@ export class EngineHealth {
 			last_error_at: state.lastErrorAt,
 			last_success_at: state.lastSuccessAt,
 			last_latency_ms: state.lastLatencyMs,
+			requests_last_minute: EngineThrottle.usage(slug),
 		};
 	}
 }
@@ -104,5 +107,7 @@ export namespace EngineHealth {
 		last_error_at: number | null;
 		last_success_at: number | null;
 		last_latency_ms: number | null;
+		/** Upstream requests in the last 60 s (what the engine's rate limit counts). */
+		requests_last_minute: number;
 	}
 }

@@ -34,4 +34,17 @@ export namespace AdminSettingsModel {
 			error: z.string().nullable(),
 		});
 	}
+
+	export const CacheStats = z.object({
+		persistent: z.boolean().describe("Whether the disk tier is in use"),
+		memory_entries: z.number(),
+		disk_entries: z.number(),
+		disk_bytes: z.number(),
+		in_flight: z.number().describe("Engine requests currently running that others can join"),
+		hits: z.number().describe("Engine runs answered from the cache"),
+		misses: z.number().describe("Engine runs that had to ask the engine"),
+		stale_served: z.number().describe("Times expired results stood in for an unavailable engine"),
+		coalesced: z.number().describe("Requests that joined an identical one already running"),
+		since: z.number().describe("When the counters started (epoch ms)"),
+	});
 }

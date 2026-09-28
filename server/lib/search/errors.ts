@@ -6,6 +6,8 @@ export class EngineError extends Error {
 	constructor(
 		readonly kind: EngineError.Kind,
 		message: string,
+		/** How long the upstream asked us to back off (`Retry-After`), if it said so. */
+		readonly retryAfterMs?: number,
 	) {
 		super(message);
 		this.name = "EngineError";

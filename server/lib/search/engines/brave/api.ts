@@ -1,7 +1,7 @@
 import { z } from "zod";
-import type { SearchTypes } from "../types";
-import { SearchUtils } from "../utils";
-import { SearchEngine } from "./base";
+import type { SearchTypes } from "../../types";
+import { SearchUtils } from "../../utils";
+import { SearchEngine } from "../base";
 
 const Settings = z.object({
 	api_key: z.string().min(1).describe("Brave Search API subscription token"),

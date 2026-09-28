@@ -8,7 +8,8 @@ import { SearchEngineRegistry } from "../../../../../../search/engines";
 import type { SearchEngine } from "../../../../../../search/engines/base";
 import { EngineHealth } from "../../../../../../search/health";
 import { SearchEngineManager } from "../../../../../../search/manager";
-import { SearchService } from "../../../../../../search/service";
+import { EngineRunCache } from "../../../../../../search/runCache";
+import { EngineThrottle } from "../../../../../../search/throttle";
 import { APIResponse } from "../../../../../utils/api-res";
 import { APIResponseSpec, APIRouteSpec } from "../../../../../utils/specHelpers";
 import { DOCS_TAGS } from "../../../docs";
@@ -75,9 +76,10 @@ async function validate(
 	return { settings: parsed.data as Record<string, any> };
 }
 
-async function afterChange() {
+/** Reload the engines and drop what the changed engine had cached (keys change anyway). */
+async function afterChange(...slugs: string[]) {
 	await SearchEngineManager.reload();
-	SearchService.clearCache();
+	for (const slug of slugs) EngineRunCache.invalidateEngine(slug);
 }
 
 router.get(
@@ -105,6 +107,7 @@ router.get(
 			secret_fields: [...(definition.secretFields ?? [])],
 			requires_configuration: definition.requiresConfiguration ?? false,
 			default_timeout_ms: definition.defaultTimeoutMs ?? 4000,
+			default_rate_limit_per_minute: definition.defaultRateLimitPerMinute ?? 0,
 		}));
 		return APIResponse.success(c, "Engine types retrieved", types);
 	},
@@ -163,10 +166,14 @@ router.post(
 
 		const row = await DB.instance()
 			.insert(DB.Tables.searchEngines)
-			.values({ ...body, settings: checked.settings })
+			.values({
+				...body,
+				rate_limit_per_minute: body.rate_limit_per_minute ?? definition?.defaultRateLimitPerMinute ?? 0,
+				settings: checked.settings,
+			})
 			.returning()
 			.get();
-		await afterChange();
+		await afterChange(row.slug);
 		return APIResponse.created(c, "Engine created", toModel(row));
 	},
 );
@@ -248,7 +255,7 @@ router.put(
 			.where(eq(DB.Tables.searchEngines.id, row.id))
 			.returning()
 			.get();
-		await afterChange();
+		await afterChange(row.slug, updated.slug);
 		return APIResponse.success(c, "Engine updated", toModel(updated));
 	},
 );
@@ -272,7 +279,8 @@ router.delete(
 			.where(eq(DB.Tables.searchEngines.id, row.id))
 			.run();
 		EngineHealth.reset(row.slug);
-		await afterChange();
+		EngineThrottle.reset(row.slug);
+		await afterChange(row.slug);
 		return APIResponse.successNoData(c, "Engine deleted");
 	},
 );
@@ -311,7 +319,8 @@ router.post(
 			} satisfies AdminEnginesModel.TestResponse);
 		}
 
-		// A manual test should not be refused because of an earlier suspension.
+		// A manual test should not be refused because of an earlier suspension or the rate limit
+		// (the request still counts toward it), and always asks the engine itself — no cache.
 		EngineHealth.reset(row.slug);
 		const outcome = await SearchAggregator.run(
 			{
@@ -323,6 +332,7 @@ router.post(
 				timeRange: null,
 			},
 			[engine],
+			{ enforceLimits: false },
 		);
 		const status = outcome.engines[0]!;
 		return APIResponse.success(c, "Engine tested", {

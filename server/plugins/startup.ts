@@ -6,6 +6,8 @@ import { BangDataset } from "../lib/bangs/dataset";
 import { DB } from "../lib/db";
 import { ProxyManager } from "../lib/proxy";
 import { SearchEngineManager } from "../lib/search/manager";
+import { EngineRunCache } from "../lib/search/runCache";
+import { SettingsHandler } from "../lib/settings";
 import { TaskScheduler } from "../lib/tasks";
 import { Utils } from "../lib/utils";
 import { ConfigHandler } from "../lib/utils/config";
@@ -28,10 +30,13 @@ export default defineNitroPlugin(async (nitroApp) => {
 
 	await EmailService.init();
 
-	// Search domain: default engines on first boot, then load engines, proxies and bangs.
-	await SearchEngineManager.seedDefaultsIfEmpty();
+	// Search domain: default engines (new ones after upgrades too), then engines, proxies, bangs.
+	await SearchEngineManager.seedDefaults();
 	await ProxyManager.reload();
 	await SearchEngineManager.reload();
+	EngineRunCache.configure({
+		persistent: (await SettingsHandler.getInstance()).search_cache_persistent,
+	});
 	await BangService.load();
 
 	if (!config.BANGS_DISABLE_AUTO_FETCH) {
@@ -59,6 +64,7 @@ export default defineNitroPlugin(async (nitroApp) => {
 
 			await ProxyManager.closeAll();
 
+			EngineRunCache.close();
 			await DB.close();
 
 			Logger.log("Shutdown complete, exiting.");

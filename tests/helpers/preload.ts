@@ -5,6 +5,7 @@ import fs from "fs/promises";
 import path from "path";
 import { API } from "../../server/lib/api";
 import { DB } from "../../server/lib/db";
+import { EngineRunCache } from "../../server/lib/search/runCache";
 import { Utils } from "../../server/lib/utils";
 import { ConfigHandler, type ENVConfigLike } from "../../server/lib/utils/config";
 
@@ -23,7 +24,6 @@ function setTestEnv(rootDir: string) {
 		XRAY_APP_URL: "http://localhost:12418",
 
 		XRAY_TRUST_PROXY: false,
-		XRAY_SEARCH_CACHE_TTL: 300,
 		XRAY_BANGS_DISABLE_AUTO_FETCH: true,
 
 		XRAY_SMTP_HOST: "127.0.0.1",
@@ -107,6 +107,7 @@ beforeAll(async () => {
 afterAll(async () => {
 	await API.stop();
 
+	EngineRunCache.close();
 	await DB.close();
 
 	if (TMP_ROOT) {
