@@ -86,9 +86,16 @@ describe("Engine run cache", () => {
 	});
 
 	test("joins identical requests that are already running", async () => {
-		await createFakeEngine("slowpoke", { results: [result(1)], delay_ms: 200 });
+		await createFakeEngine("slowpoke", { results: [result(1)] });
+		// Hold the engine until every request has looked up the cache and gone to it — a fixed
+		// delay lets a late request on a slow machine find the finished run as a plain cache hit.
+		let release!: () => void;
+		FakeEngine.overrides.set("slowpoke", { gate: new Promise((resolve) => (release = resolve)) });
 
-		const [a, b, c] = await Promise.all([search("joined"), search("joined"), search("joined")]);
+		const requests = Promise.all([search("joined"), search("joined"), search("joined")]);
+		while (EngineRunCache.stats().misses < 3) await Bun.sleep(5);
+		release();
+		const [a, b, c] = await requests;
 		expect(FakeEngine.callsOf("slowpoke")).toBe(1);
 		for (const data of [a, b, c]) expect(data.results).toHaveLength(1);
 		expect(EngineRunCache.stats().coalesced).toBe(2);

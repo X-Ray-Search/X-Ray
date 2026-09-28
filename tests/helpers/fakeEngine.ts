@@ -45,7 +45,14 @@ export class FakeEngine extends SearchEngine<z.infer<typeof Settings>> {
 	static readonly calls: Array<SearchTypes.EngineQuery & { slug: string }> = [];
 
 	/** Behaviour changes per slug at runtime — unlike settings they keep the cache keys. */
-	static readonly overrides = new Map<string, { fail?: "none" | "blocked" | "error" }>();
+	static readonly overrides = new Map<
+		string,
+		{
+			fail?: "none" | "blocked" | "error";
+			/** Answer only once this settles. */
+			gate?: Promise<void>;
+		}
+	>();
 
 	static callsOf(slug: string) {
 		return FakeEngine.calls.filter((call) => call.slug === slug).length;
@@ -54,6 +61,7 @@ export class FakeEngine extends SearchEngine<z.infer<typeof Settings>> {
 	async search(query: SearchTypes.EngineQuery): Promise<SearchTypes.EngineResponse> {
 		FakeEngine.calls.push({ ...query, slug: this.config.slug });
 		if (this.settings.delay_ms) await Bun.sleep(this.settings.delay_ms);
+		await FakeEngine.overrides.get(this.config.slug)?.gate;
 		const fail = FakeEngine.overrides.get(this.config.slug)?.fail ?? this.settings.fail;
 		if (fail === "blocked") throw new EngineError("blocked", "captcha");
 		if (fail === "error") throw new EngineError("http", "HTTP 500");
