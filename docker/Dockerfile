@@ -1,5 +1,8 @@
 FROM oven/bun:1-slim
 
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /opt/x-ray-search/search
 
 COPY .output ./app/.output
