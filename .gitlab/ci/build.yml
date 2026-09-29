@@ -3,7 +3,7 @@ build-and-push:
   stage: build
   variables:
     BUN_INSTALL_CACHE_DIR: .bun/install/cache
-    NUXT_TELEMETRY_DISABLED: '1'
+    NUXT_TELEMETRY_DISABLED: "1"
     BUILDX_NO_DEFAULT_ATTESTATIONS: "1"
 
   cache:
@@ -48,3 +48,6 @@ build-and-push:
 
     - docker build -f docker/Dockerfile -t "$CI_REGISTRY_IMAGE:latest" .
     - docker push "$CI_REGISTRY_IMAGE:latest"
+
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
