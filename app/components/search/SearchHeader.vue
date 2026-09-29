@@ -28,11 +28,16 @@ const selectedRange = computed({
 
 <template>
 	<header class="sticky top-0 z-40 border-b border-slate-800/80 bg-[rgb(7_8_11/0.85)] backdrop-blur-xl">
-		<!-- From lg the logo column fills the gutter, so the search box lines up with the results. -->
+		<!--
+			From lg the logo column fills the gutter, so the search box lines up with the results. The
+			name next to the icon only shows where it fits: from sm, and from lg once the gutter is wide enough.
+		-->
 		<div class="flex items-center gap-3 px-4 pt-3 sm:gap-6 sm:px-6 lg:gap-0 lg:px-8">
-			<div class="flex shrink-0 lg:w-[calc(var(--search-gutter)-2rem)]">
+			<div class="flex shrink-0 lg:w-[calc(var(--search-gutter)-2rem)] lg:@container">
 				<NuxtLink to="/" aria-label="X-Ray home">
-					<ImgAppIcon class="size-10" />
+					<ImgAppLogo
+						class="h-10 [&>span:last-child]:hidden [&>span:last-child]:text-2xl sm:max-lg:[&>span:last-child]:inline @min-[8rem]:[&>span:last-child]:inline"
+					/>
 				</NuxtLink>
 			</div>
 			<div class="min-w-0 flex-1 lg:max-w-3xl">
