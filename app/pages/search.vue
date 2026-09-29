@@ -183,12 +183,15 @@ const topAnswers = computed(
 const sideAnswers = computed(
 	() => result.value?.instant_answers.filter((a) => a.placement === "side") ?? [],
 );
+// A top instant answer (calculator, weather, time, hash, …) already answers the query, so the AI
+// answer is left out. The server only returns the instant answers the user has enabled.
 const showAI = computed(
 	() =>
 		!!result.value?.ai_available &&
 		category.value === "general" &&
 		params.value.page === 1 &&
-		(prefs.value?.ai_mode ?? "off") !== "off",
+		(prefs.value?.ai_mode ?? "off") !== "off" &&
+		!topAnswers.value.length,
 );
 // AI answers are for signed-in users only (also on public instances).
 const aiModeAvailable = computed(
