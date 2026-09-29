@@ -17,7 +17,8 @@ const TOLERANT_PREFIXES = [
 
 /**
  * Browser-initiated GETs that cannot send an Authorization header (OpenSearch suggestions from
- * the address bar) may authenticate with the session cookie instead. Read-only, so no CSRF risk.
+ * the address bar, also via the legacy `/autocompleter` alias) may authenticate with the session
+ * cookie instead. Read-only, so no CSRF risk.
  */
 const COOKIE_AUTH_PATHS = ["/v1/search/suggest/opensearch"];
 
