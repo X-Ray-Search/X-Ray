@@ -22,6 +22,6 @@ VOLUME /opt/x-ray-search/search/data
 VOLUME /opt/x-ray-search/search/config
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s \
-	CMD curl -f http://localhost:12418/health || exit 1
+	CMD curl -f http://localhost:12418/api/health || exit 1
 
 CMD ["bun", "run", "/opt/x-ray-search/search/app/.output/server/index.mjs"]
