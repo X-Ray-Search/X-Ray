@@ -1,4 +1,4 @@
-FROM oven/bun:1-slim
+FROM oven/bun:slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
@@ -10,7 +10,8 @@ COPY drizzle/migrations ./app/drizzle/migrations
 
 EXPOSE 12418/tcp
 
-ENV NITRO_ENV=production
+ENV NODE_ENV=production
+
 ENV NITRO_HOST=::
 ENV NITRO_PORT=12418
 
