@@ -15,21 +15,24 @@ export class AIService {
 	private static readonly HISTORY_MESSAGE_CHARS = 4000;
 
 	/**
-	 * Appended to the system prompt on every chat turn. Admin-configured prompts are often strict
-	 * about answering only from search results, so this note explicitly overrides that for
-	 * follow-ups and licenses the conversation as context.
+	 * Appended to the system prompt on every chat turn. System prompts are usually strict about
+	 * answering only from the search results; this note extends that to the conversation (earlier
+	 * turns count as a source too) without lifting the admin's rules or licensing the model's own
+	 * knowledge.
 	 */
 	private static readonly CHAT_NOTE = [
-		"This is a follow-up in an ongoing conversation; these rules override anything said above about using only the search results.",
-		"Earlier turns come first. Use them as context and answer from them whenever the latest search results do not contain the answer; do not say that no information was found when the conversation itself answers the question.",
+		"This is a follow-up in an ongoing conversation; earlier turns come first.",
+		"Wherever the instructions above limit you to the search results, the earlier turns of this conversation count as a source as well: answer from them when the latest search results do not contain the answer, and do not say that no information was found when the conversation itself answers the question.",
 		"The numbered search results belong to the latest message only; earlier turns' citations are not accessible.",
 		"Some follow-ups need no web search and arrive without a search results block; answer those from the conversation.",
 	].join(" ");
 
+	/** Kept narrow on purpose: a skipped search that was needed costs more than a needless one. */
 	private static readonly REWRITE_PROMPT = [
 		"You decide whether answering the latest message of the conversation requires a web search. Reply with exactly one of:",
-		"- NONE, when the message can be answered from the conversation alone: a follow-up on what was already discussed, a request to simplify, expand, rephrase or translate the previous answer, a clarification or opinion, a greeting or thank-you.",
-		"- A short, standalone web search query, when the message needs information from the web. Resolve references like 'it' or 'the second one' using the conversation. Reply with the query only: no quotes, no explanation.",
+		"- NONE, only when the message reworks the previous answer or needs no facts at all: simplify, shorten, rephrase, reformat, summarize or translate it; a greeting, thank-you or acknowledgment.",
+		"- Otherwise a short, standalone web search query. This includes every request for more details, new facts, comparisons, examples or current information. Resolve references like 'it' or 'the second one' using the conversation. Reply with the query only: no quotes, no explanation.",
+		"When unsure, reply with a search query.",
 	].join("\n");
 
 	private static systemMessage(config: SettingsModels.AIConfig, now: Date, note?: string) {
@@ -66,14 +69,17 @@ export class AIService {
 
 	static buildMessages(
 		query: string,
-		results: readonly SearchModels.Result[] | null,
+		results: readonly SearchModels.Result[],
 		config: SettingsModels.AIConfig,
 		now = new Date(),
 	): AIService.Message[] {
 		return [this.systemMessage(config, now), this.questionMessage(query, results)];
 	}
 
-	/** Messages for a chat turn: the recent history, then the new question with fresh results. */
+	/**
+	 * Messages for a chat turn: the recent history, then the new question with fresh results —
+	 * or, with `results: null`, without a web search (answered from the conversation).
+	 */
 	static buildChatMessages(
 		history: readonly AIService.ChatMessage[],
 		question: string,
@@ -81,7 +87,8 @@ export class AIService {
 		config: SettingsModels.AIConfig,
 		now = new Date(),
 	): AIService.Message[] {
-		if (!history.length) return this.buildMessages(question, results, config, now);
+		// Without a conversation there is nothing to answer from but the results.
+		if (!history.length) return this.buildMessages(question, results ?? [], config, now);
 		const turns = history.slice(-this.HISTORY_MESSAGES).map((m) => ({
 			role: m.role,
 			content: (m.role === "assistant" ? this.stripCitations(m.content) : m.content).slice(
@@ -213,6 +220,15 @@ export class AIService {
 	}
 
 	/**
+	 * Whether a decision reply means "no web search": `NONE` alone or followed by punctuation and
+	 * an explanation ("NONE, the conversation covers it"); an all-caps `NONE` always does. A query
+	 * that merely starts with the word ("None Shall Pass") stays a query.
+	 */
+	private static isNoSearch(reply: string) {
+		return /^NONE\b/.test(reply) || /^none\s*(?:$|[.,;:!?(–—-])/i.test(reply);
+	}
+
+	/**
 	 * The web search for a chat message, or `null` when none is needed. Follow-ups ("and in
 	 * winter?") only make sense with the conversation, so the model rewrites them into a standalone
 	 * query; the same call also decides that purely conversational follow-ups ("simplify that",
@@ -251,20 +267,22 @@ export class AIService {
 				signal,
 			);
 			const data = (await res.json()) as any;
-			const reply = data.choices?.[0]?.message?.content;
-			if (typeof reply !== "string") return question;
-			// Reasoning models may prefix their reply with a <think> block.
+			const choice = data.choices?.[0];
+			const reply = choice?.message?.content;
+			// A cut-off reply (a reasoning model out of tokens) may end mid-word: no usable decision.
+			if (typeof reply !== "string" || choice.finish_reason === "length") return question;
+			// Reasoning models may prefix their reply with a <think> block; small models like to
+			// wrap it in a list marker, Markdown emphasis or quotes.
 			const query = (
 				reply
 					.replace(/<think>[\s\S]*?<\/think>/g, "")
 					.trim()
 					.split("\n")[0] ?? ""
 			)
-				.replace(/^["'“”]+|["'“”]+$/g, "")
+				.replace(/^(?:[-*•>]|#+|\d+[.)])\s+/, "")
+				.replace(/^[*`"'“”„]+|[*`"'“”]+$/g, "")
 				.trim();
-			// The model decided the conversation alone answers this message. Matched exactly: a
-			// query that merely starts with "none" would skip a genuinely needed search.
-			if (/^none[.!?]?$/i.test(query)) return null;
+			if (this.isNoSearch(query)) return null;
 			return query && query.length <= 300 && !query.includes("<think") ? query : question;
 		} catch (err) {
 			if (signal?.aborted) throw err;

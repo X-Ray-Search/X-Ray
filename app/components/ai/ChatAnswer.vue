@@ -25,13 +25,9 @@ const busy = computed(() => props.status === "searching" || props.status === "st
 		</span>
 
 		<div class="min-w-0 flex-1">
-			<p
-				v-if="searchQuery || status === 'searching'"
-				class="mb-2 flex min-h-7 items-center gap-1.5 text-xs text-slate-500"
-			>
+			<p v-if="searchQuery" class="mb-2 flex min-h-7 items-center gap-1.5 text-xs text-slate-500">
 				<UIcon name="i-lucide-search" class="size-3.5 shrink-0" />
-				<span v-if="!searchQuery">Searching the web…</span>
-				<span v-else class="truncate">
+				<span class="truncate">
 					{{ status === "searching" ? "Searching for" : "Searched for" }}
 					<NuxtLink
 						:to="searchLocation({ q: searchQuery })"
@@ -41,6 +37,14 @@ const busy = computed(() => props.status === "searching" || props.status === "st
 						“{{ searchQuery }}”
 					</NuxtLink>
 				</span>
+			</p>
+			<!-- Before the search decision arrives, and for answers made without a web search. -->
+			<p v-else-if="status !== 'error'" class="mb-2 flex min-h-7 items-center gap-1.5 text-xs text-slate-500">
+				<template v-if="status === 'searching'">Thinking…</template>
+				<template v-else>
+					<UIcon name="i-lucide-messages-square" class="size-3.5 shrink-0" />
+					From the conversation, no web search
+				</template>
 			</p>
 
 			<div v-if="status === 'searching'" class="space-y-2 py-1">
@@ -60,9 +64,6 @@ const busy = computed(() => props.status === "searching" || props.status === "st
 			/>
 
 			<div v-else>
-				<p v-if="status === 'streaming' && !text && !searchQuery" class="mb-2 text-xs text-slate-500">
-					Thinking…
-				</p>
 				<div class="xray-prose text-[15px] leading-relaxed text-slate-200" v-html="html" />
 				<span v-if="busy" class="ml-0.5 inline-block h-4 w-2 animate-pulse bg-primary align-middle" />
 			</div>

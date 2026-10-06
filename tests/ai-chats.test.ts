@@ -166,9 +166,10 @@ describe("AI chats", () => {
 		const engineCalls = FakeEngine.callsOf("alpha");
 
 		const events = await sendStreaming(chat.id, "can you simplify that?");
-		expect(events.map((e) => e.event)).toEqual(["search", "delta", "delta", "done"]);
+		expect(events.map((e) => e.event)).toEqual(["search", "sources", "delta", "delta", "done"]);
 		expect(events[0]!.data).toEqual({ query: null });
-		// No web search was made, so no engine was hit and no sources were announced.
+		// No web search was made, so no engine was hit and the sources are empty.
+		expect(events[1]!.data).toEqual([]);
 		expect(FakeEngine.callsOf("alpha")).toBe(engineCalls);
 
 		const done = events.at(-1)!.data as AIChatModel.Send.Response;

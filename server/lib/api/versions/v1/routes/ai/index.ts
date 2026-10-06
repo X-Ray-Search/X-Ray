@@ -134,7 +134,7 @@ router.post(
 	APIRouteSpec.authenticated({
 		summary: "Send a message",
 		description:
-			"Ask a (follow-up) question in a chat. Follow-ups are rewritten into a standalone web search using the conversation, or answered from the conversation alone when no web search is needed. Grounded answers cite the search's top results as [n]. The turn is stored once the answer is complete — a stopped answer is kept as far as it got. With `stream: true` (default) the response is `text/event-stream` with the events `search` (`{ query }`, `null` when no web search was made), `sources` (only sent after a web search), `delta` (`{ text }`), `done` (the JSON response below) and `error`; otherwise the JSON envelope below.",
+			"Ask a (follow-up) question in a chat. Follow-ups are rewritten into a standalone web search using the conversation, or answered from the conversation alone when no web search is needed. Grounded answers cite the search's top results as [n]. The turn is stored once the answer is complete — a stopped answer is kept as far as it got. With `stream: true` (default) the response is `text/event-stream` with the events `search` (`{ query }`, `null` when no web search was made), `sources` (empty without a web search), `delta` (`{ text }`), `done` (the JSON response below) and `error`; otherwise the JSON envelope below.",
 		tags: [DOCS_TAGS.AI],
 
 		responses: APIResponseSpec.describeWithWrongInputs(
@@ -163,17 +163,14 @@ router.post(
 		const history = await AIChats.messages(chat.id);
 		const model = access.showModel ? config.model : null;
 
-		/** The grounding for a turn: `null` answers from the conversation alone (no web search). */
+		/** The grounding for a turn: no search query (`null`) answers from the conversation alone. */
 		const search = async (searchQuery: string | null) => {
-			if (searchQuery === null) {
-				return {
-					sources: [] as AIService.Source[],
-					messages: AIService.buildChatMessages(history, body.content, null, config),
-				};
-			}
-			const results = await AIAccess.groundingResults(c, access, searchQuery, body.language);
+			const results =
+				searchQuery === null
+					? null
+					: await AIAccess.groundingResults(c, access, searchQuery, body.language);
 			return {
-				sources: AIService.sources(results),
+				sources: results ? AIService.sources(results) : [],
 				messages: AIService.buildChatMessages(history, body.content, results, config),
 			};
 		};
@@ -220,10 +217,8 @@ router.post(
 
 				const turn = await search(searchQuery);
 				sources = turn.sources;
-				// Only a turn with a web search has sources to announce.
-				if (searchQuery !== null) {
-					await stream.writeSSE({ event: "sources", data: JSON.stringify(sources) });
-				}
+				// Sent on every turn (empty without a web search), so clients can rely on it.
+				await stream.writeSSE({ event: "sources", data: JSON.stringify(sources) });
 
 				for await (const text of AIService.stream(turn.messages, config, signal)) {
 					if (stream.aborted) break;

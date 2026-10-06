@@ -2,7 +2,7 @@
  * useAIChat — one AI chat ("AI mode") on `/ai/:chat_id`: its messages and the turn being
  * streamed from `POST /api/v1/ai/chats/{id}/messages` (Server-Sent Events, read with
  * `postEventStream`). Events: `search` ({ query }, `null` when the answer needs no web search),
- * `sources` (only after a web search), `delta` ({ text }), `done` (the stored answer and the
+ * `sources` (empty without a web search), `delta` ({ text }), `done` (the stored answer and the
  * updated chat) and `error`.
  *
  * `startAIChat` creates a chat (optionally seeded with a search's AI answer) and opens it; the
