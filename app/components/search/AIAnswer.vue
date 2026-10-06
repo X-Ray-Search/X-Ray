@@ -17,9 +17,27 @@ const { status, text, sources, model, error, ask, stop, reset } = useAIAnswer();
 const expanded = ref(false);
 const followUp = ref("");
 const opening = ref(false);
+const body = ref<HTMLElement | null>(null);
+/** Whether the clamped answer is taller than its box — decided by layout, not by text length. */
+const overflowing = ref(false);
 
 const html = computed(() => renderMarkdown(text.value, sources.value));
 const busy = computed(() => status.value === "loading" || status.value === "streaming");
+
+function measure() {
+	const el = body.value;
+	overflowing.value = !!el && el.scrollHeight > el.clientHeight + 1;
+}
+
+let observer: ResizeObserver | null = null;
+watch(body, (el, old) => {
+	if (old) observer?.unobserve(old);
+	if (!el) return;
+	observer ??= new ResizeObserver(measure);
+	observer.observe(el);
+});
+watch([html, expanded, busy], () => nextTick(measure), { flush: "post" });
+onBeforeUnmount(() => observer?.disconnect());
 
 function start() {
 	expanded.value = false;
@@ -134,13 +152,14 @@ async function openChat(question: string | null) {
 
 				<div v-else class="relative">
 					<div
+						ref="body"
 						class="xray-prose text-[15px] leading-relaxed text-slate-200"
 						:class="!expanded && !busy ? 'max-h-72 overflow-hidden' : ''"
 						v-html="html"
 					/>
 					<span v-if="busy" class="ml-0.5 inline-block h-4 w-2 animate-pulse bg-primary align-middle" />
 					<div
-						v-if="!expanded && !busy && text.length > 900"
+						v-if="!expanded && !busy && overflowing"
 						class="absolute inset-x-0 bottom-0 flex h-20 items-end justify-center bg-linear-to-t from-slate-950 to-transparent"
 					>
 						<UButton size="sm" color="neutral" variant="soft" label="Show more" trailing-icon="i-lucide-chevron-down" @click="expanded = true" />
