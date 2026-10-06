@@ -17,7 +17,6 @@ try {
 	Bun.write("./data/temp-api-openapi.json", res);
 
 	await Bun.$`bunx openapi-ts`;
-	await Bun.$`bun scripts/patch-api-client.ts`;
 
 	rmSync("./data/temp-api-openapi.json", { force: true });
 } catch (err: any) {
