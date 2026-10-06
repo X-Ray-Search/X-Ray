@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** One answer in an AI chat: the web search it is grounded in, the Markdown and its sources. */
+/** One answer in an AI chat: the web search it is grounded in (if any), the Markdown and its sources. */
 const props = withDefaults(
 	defineProps<{
 		text: string;
@@ -60,6 +60,9 @@ const busy = computed(() => props.status === "searching" || props.status === "st
 			/>
 
 			<div v-else>
+				<p v-if="status === 'streaming' && !text && !searchQuery" class="mb-2 text-xs text-slate-500">
+					Thinking…
+				</p>
 				<div class="xray-prose text-[15px] leading-relaxed text-slate-200" v-html="html" />
 				<span v-if="busy" class="ml-0.5 inline-block h-4 w-2 animate-pulse bg-primary align-middle" />
 			</div>

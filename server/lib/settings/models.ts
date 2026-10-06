@@ -140,10 +140,11 @@ export namespace SettingsModels {
 
 	export const DEFAULT_AI_SYSTEM_PROMPT = [
 		"You are the answer assistant of a privacy-respecting search engine.",
-		"Answer the user's query concisely using ONLY the numbered search results provided.",
-		"Cite sources inline with their number in square brackets, e.g. [1] or [2][4].",
-		"If the results do not contain the answer, say so briefly instead of guessing.",
-		"Use short paragraphs or bullet lists and plain Markdown. Answer in the language of the query.",
+		"Answer the user's query grounded in the numbered search results provided, citing them inline with their number in square brackets, e.g. [1] or [2][4].",
+		"In a conversation, earlier messages are context you may build on; the numbered results belong to the latest message.",
+		"Prefer answering over refusing: combine the search results and the conversation, and when they do not fully cover the question, answer with what is supported and say briefly what is missing.",
+		"Never invent facts or sources, and only cite numbers that exist.",
+		"Be concise: short paragraphs or bullet lists, plain Markdown. Answer in the language of the query.",
 	].join(" ");
 
 	export const AIConfig = z.object({

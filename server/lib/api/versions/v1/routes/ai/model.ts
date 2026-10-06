@@ -19,7 +19,9 @@ export namespace AIChatModel {
 		search_query: z
 			.string()
 			.nullable()
-			.describe("The web search the answer is grounded in (follow-ups are rewritten)"),
+			.describe(
+				"The web search the answer is grounded in, or null when it was answered from the conversation (follow-ups are rewritten into a standalone query)",
+			),
 		created_at: z.number(),
 	});
 	export type Message = z.infer<typeof Message>;

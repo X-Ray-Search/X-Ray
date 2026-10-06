@@ -11,8 +11,9 @@ import { DOCS_TAGS } from "../../docs";
 import { AIChatModel } from "./model";
 
 /**
- * AI chats ("AI mode"): follow-up questions on an AI answer, stored per user. Every answer is
- * grounded in a fresh web search; follow-ups are first rewritten into a standalone query.
+ * AI chats ("AI mode"): follow-up questions on an AI answer, stored per user. Answers are grounded
+ * in a fresh web search; follow-ups are first rewritten into a standalone query — or answered from
+ * the conversation alone when no web search is needed.
  */
 export const router = new Hono().basePath("/ai");
 
@@ -133,7 +134,7 @@ router.post(
 	APIRouteSpec.authenticated({
 		summary: "Send a message",
 		description:
-			"Ask a (follow-up) question in a chat. The question is rewritten into a standalone web search using the conversation, and the answer is grounded in its top results (cited as [n]). The turn is stored once the answer is complete — a stopped answer is kept as far as it got. With `stream: true` (default) the response is `text/event-stream` with the events `search` (`{ query }`), `sources`, `delta` (`{ text }`), `done` (the JSON response below) and `error`; otherwise the JSON envelope below.",
+			"Ask a (follow-up) question in a chat. Follow-ups are rewritten into a standalone web search using the conversation, or answered from the conversation alone when no web search is needed. Grounded answers cite the search's top results as [n]. The turn is stored once the answer is complete — a stopped answer is kept as far as it got. With `stream: true` (default) the response is `text/event-stream` with the events `search` (`{ query }`, `null` when no web search was made), `sources` (only sent after a web search), `delta` (`{ text }`), `done` (the JSON response below) and `error`; otherwise the JSON envelope below.",
 		tags: [DOCS_TAGS.AI],
 
 		responses: APIResponseSpec.describeWithWrongInputs(
@@ -162,7 +163,14 @@ router.post(
 		const history = await AIChats.messages(chat.id);
 		const model = access.showModel ? config.model : null;
 
-		const search = async (searchQuery: string) => {
+		/** The grounding for a turn: `null` answers from the conversation alone (no web search). */
+		const search = async (searchQuery: string | null) => {
+			if (searchQuery === null) {
+				return {
+					sources: [] as AIService.Source[],
+					messages: AIService.buildChatMessages(history, body.content, null, config),
+				};
+			}
 			const results = await AIAccess.groundingResults(c, access, searchQuery, body.language);
 			return {
 				sources: AIService.sources(results),
@@ -172,7 +180,7 @@ router.post(
 
 		const save = async (
 			answer: string,
-			searchQuery: string,
+			searchQuery: string | null,
 			sources: AIService.Source[],
 		): Promise<AIChatModel.Send.Response> => {
 			const message = await AIChats.addTurn(chat.id, body.content, {
@@ -203,7 +211,7 @@ router.post(
 					data: JSON.stringify({ message: "The AI endpoint failed" }),
 				});
 
-			let searchQuery = body.content;
+			let searchQuery: string | null = body.content;
 			let sources: AIService.Source[] = [];
 			let answer = "";
 			try {
@@ -212,7 +220,10 @@ router.post(
 
 				const turn = await search(searchQuery);
 				sources = turn.sources;
-				await stream.writeSSE({ event: "sources", data: JSON.stringify(sources) });
+				// Only a turn with a web search has sources to announce.
+				if (searchQuery !== null) {
+					await stream.writeSSE({ event: "sources", data: JSON.stringify(sources) });
+				}
 
 				for await (const text of AIService.stream(turn.messages, config, signal)) {
 					if (stream.aborted) break;

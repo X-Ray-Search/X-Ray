@@ -643,7 +643,7 @@ export type GetAiChatsByChatIdResponses = {
                     url: string;
                 }>;
                 /**
-                 * The web search the answer is grounded in (follow-ups are rewritten)
+                 * The web search the answer is grounded in, or null when it was answered from the conversation (follow-ups are rewritten into a standalone query)
                  */
                 search_query: string | null;
                 created_at: number;
@@ -740,7 +740,7 @@ export type PostAiChatsByChatIdMessagesResponses = {
                     url: string;
                 }>;
                 /**
-                 * The web search the answer is grounded in (follow-ups are rewritten)
+                 * The web search the answer is grounded in, or null when it was answered from the conversation (follow-ups are rewritten into a standalone query)
                  */
                 search_query: string | null;
                 created_at: number;

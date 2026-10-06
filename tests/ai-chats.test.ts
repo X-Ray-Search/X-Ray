@@ -5,7 +5,7 @@ import { AIChatModel } from "../server/lib/api/versions/v1/routes/ai/model";
 import { SettingsHandler } from "../server/lib/settings";
 import { SettingsModels } from "../server/lib/settings/models";
 import { makeAPIRequest } from "./helpers/api";
-import { createFakeEngine, resetEngines } from "./helpers/fakeEngine";
+import { createFakeEngine, FakeEngine, resetEngines } from "./helpers/fakeEngine";
 import { seedSession, seedUser } from "./helpers/seed";
 
 let token: string;
@@ -61,10 +61,22 @@ beforeAll(async () => {
 		port: 0,
 		async fetch(req) {
 			const body = (await req.json()) as any;
-			if (String(body.messages[0]?.content).startsWith("Rewrite the latest message")) {
+			if (
+				String(body.messages[0]?.content).startsWith("You decide whether answering the latest message")
+			) {
 				rewriteRequests++;
+				// "can you simplify that?" needs no web search; every other follow-up is rewritten.
+				const latest = String(body.messages[1]?.content ?? "")
+					.split("Latest message: ")
+					.pop();
 				return Response.json({
-					choices: [{ message: { content: '"rust borrow checker lifetimes"' } }],
+					choices: [
+						{
+							message: {
+								content: latest === "can you simplify that?" ? "NONE" : '"rust borrow checker lifetimes"',
+							},
+						},
+					],
 				});
 			}
 			answerRequests.push(body);
@@ -147,6 +159,48 @@ describe("AI chats", () => {
 
 		const list = await makeAPIRequest<AIChatModel.Summary[]>("/v1/ai/chats", { authToken: token });
 		expect(list[0]!.id).toBe(chat.id);
+	});
+
+	test("answer conversational follow-ups from the conversation, without a web search (SSE)", async () => {
+		const chat = await createChat({ messages: SEED });
+		const engineCalls = FakeEngine.callsOf("alpha");
+
+		const events = await sendStreaming(chat.id, "can you simplify that?");
+		expect(events.map((e) => e.event)).toEqual(["search", "delta", "delta", "done"]);
+		expect(events[0]!.data).toEqual({ query: null });
+		// No web search was made, so no engine was hit and no sources were announced.
+		expect(FakeEngine.callsOf("alpha")).toBe(engineCalls);
+
+		const done = events.at(-1)!.data as AIChatModel.Send.Response;
+		expect(done.message.search_query).toBeNull();
+		expect(done.message.sources).toEqual([]);
+
+		// The system note licenses the conversation as context; the question arrives without a
+		// search results block.
+		const request = answerRequests.at(-1);
+		expect(request.messages[0].content).toContain("follow-up in an ongoing conversation");
+		expect(request.messages.at(-1).content).toStartWith("can you simplify that?");
+		expect(request.messages.at(-1).content).toContain("No new web search");
+		expect(request.messages.at(-1).content).not.toContain("Search results:");
+
+		const stored = await makeAPIRequest<AIChatModel.Chat>(`/v1/ai/chats/${chat.id}`, {
+			authToken: token,
+			expectedBodySchema: AIChatModel.Chat,
+		});
+		expect(stored.messages[3]!.search_query).toBeNull();
+		expect(stored.messages[3]!.sources).toEqual([]);
+	});
+
+	test("answer conversational follow-ups without a web search (JSON path)", async () => {
+		const chat = await createChat({ messages: SEED });
+		const res = await makeAPIRequest<AIChatModel.Send.Response>(`/v1/ai/chats/${chat.id}/messages`, {
+			method: "POST",
+			authToken: token,
+			body: { content: "can you simplify that?", stream: false },
+			expectedBodySchema: AIChatModel.Send.Response,
+		});
+		expect(res.message.search_query).toBeNull();
+		expect(res.message.sources).toEqual([]);
 	});
 
 	test("new chats skip the rewrite, get their title from the first question; admins see the model", async () => {

@@ -1,8 +1,9 @@
 /**
  * useAIChat — one AI chat ("AI mode") on `/ai/:chat_id`: its messages and the turn being
  * streamed from `POST /api/v1/ai/chats/{id}/messages` (Server-Sent Events, read with
- * `postEventStream`). Events: `search` ({ query }), `sources`, `delta` ({ text }), `done`
- * (the stored answer and the updated chat) and `error`.
+ * `postEventStream`). Events: `search` ({ query }, `null` when the answer needs no web search),
+ * `sources` (only after a web search), `delta` ({ text }), `done` (the stored answer and the
+ * updated chat) and `error`.
  *
  * `startAIChat` creates a chat (optionally seeded with a search's AI answer) and opens it; the
  * chat page picks the first message up with `takePendingAIMessage` and sends it. Handing it over
@@ -84,8 +85,11 @@ export function useAIChat(chatID: number, initialMessages: AIChatMessage[]) {
 	function handleEvent(event: string, payload: any) {
 		const turn = pending.value;
 		if (!turn) return;
-		if (event === "search") turn.searchQuery = payload.query ?? null;
-		else if (event === "sources") turn.sources = payload;
+		if (event === "search") {
+			turn.searchQuery = payload.query ?? null;
+			// A null query means no web search: on to the answer itself.
+			if (turn.searchQuery === null) turn.status = "streaming";
+		} else if (event === "sources") turn.sources = payload;
 		else if (event === "delta") {
 			turn.status = "streaming";
 			turn.text += payload.text ?? "";

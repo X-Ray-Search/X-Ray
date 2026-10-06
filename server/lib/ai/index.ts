@@ -14,11 +14,23 @@ export class AIService {
 	static readonly HISTORY_MESSAGES = 12;
 	private static readonly HISTORY_MESSAGE_CHARS = 4000;
 
-	private static readonly CHAT_NOTE =
-		"This is a follow-up in an ongoing conversation. Earlier turns come first and may be used as context; the numbered search results belong to the latest message only.";
+	/**
+	 * Appended to the system prompt on every chat turn. Admin-configured prompts are often strict
+	 * about answering only from search results, so this note explicitly overrides that for
+	 * follow-ups and licenses the conversation as context.
+	 */
+	private static readonly CHAT_NOTE = [
+		"This is a follow-up in an ongoing conversation; these rules override anything said above about using only the search results.",
+		"Earlier turns come first. Use them as context and answer from them whenever the latest search results do not contain the answer; do not say that no information was found when the conversation itself answers the question.",
+		"The numbered search results belong to the latest message only; earlier turns' citations are not accessible.",
+		"Some follow-ups need no web search and arrive without a search results block; answer those from the conversation.",
+	].join(" ");
 
-	private static readonly REWRITE_PROMPT =
-		"Rewrite the latest message of the conversation into a short, standalone web search query. Use the conversation to resolve references like 'it' or 'the second one'. Reply with the query only: no quotes, no explanation.";
+	private static readonly REWRITE_PROMPT = [
+		"You decide whether answering the latest message of the conversation requires a web search. Reply with exactly one of:",
+		"- NONE, when the message can be answered from the conversation alone: a follow-up on what was already discussed, a request to simplify, expand, rephrase or translate the previous answer, a clarification or opinion, a greeting or thank-you.",
+		"- A short, standalone web search query, when the message needs information from the web. Resolve references like 'it' or 'the second one' using the conversation. Reply with the query only: no quotes, no explanation.",
+	].join("\n");
 
 	private static systemMessage(config: SettingsModels.AIConfig, now: Date, note?: string) {
 		return {
@@ -27,7 +39,14 @@ export class AIService {
 		};
 	}
 
-	private static questionMessage(query: string, results: readonly SearchModels.Result[]) {
+	/** `null` means no search was made (a conversational follow-up); `[]` means it found nothing. */
+	private static questionMessage(query: string, results: readonly SearchModels.Result[] | null) {
+		if (results === null) {
+			return {
+				role: "user" as const,
+				content: `${query}\n\nNo new web search was made for this message; answer it from the conversation above.`,
+			};
+		}
 		const context = results
 			.map(
 				(r, i) =>
@@ -47,7 +66,7 @@ export class AIService {
 
 	static buildMessages(
 		query: string,
-		results: readonly SearchModels.Result[],
+		results: readonly SearchModels.Result[] | null,
 		config: SettingsModels.AIConfig,
 		now = new Date(),
 	): AIService.Message[] {
@@ -58,7 +77,7 @@ export class AIService {
 	static buildChatMessages(
 		history: readonly AIService.ChatMessage[],
 		question: string,
-		results: readonly SearchModels.Result[],
+		results: readonly SearchModels.Result[] | null,
 		config: SettingsModels.AIConfig,
 		now = new Date(),
 	): AIService.Message[] {
@@ -194,16 +213,19 @@ export class AIService {
 	}
 
 	/**
-	 * The web search for a chat message. Follow-ups ("and in winter?") only make sense with the
-	 * conversation, so the model rewrites them into a standalone query first. Falls back to the
-	 * message itself when the endpoint fails or replies with something unusable.
+	 * The web search for a chat message, or `null` when none is needed. Follow-ups ("and in
+	 * winter?") only make sense with the conversation, so the model rewrites them into a standalone
+	 * query; the same call also decides that purely conversational follow-ups ("simplify that",
+	 * "thanks") need no web search at all (reply `NONE`). Falls back to the message itself when the
+	 * endpoint fails or replies with something unusable — an unusable decision is no evidence that
+	 * the message needs no search.
 	 */
 	static async searchQuery(
 		history: readonly AIService.ChatMessage[],
 		question: string,
 		config: SettingsModels.AIConfig,
 		signal?: AbortSignal,
-	): Promise<string> {
+	): Promise<string | null> {
 		if (!history.length) return question;
 		const transcript = history
 			.slice(-6)
@@ -217,7 +239,8 @@ export class AIService {
 				{
 					...config,
 					temperature: 0,
-					max_tokens: 64,
+					// Reasoning models think before answering; 64 tokens often cut them off empty.
+					max_tokens: 256,
 					timeout_ms: Math.min(config.timeout_ms, 20_000),
 				},
 				[
@@ -239,6 +262,9 @@ export class AIService {
 			)
 				.replace(/^["'“”]+|["'“”]+$/g, "")
 				.trim();
+			// The model decided the conversation alone answers this message. Matched exactly: a
+			// query that merely starts with "none" would skip a genuinely needed search.
+			if (/^none[.!?]?$/i.test(query)) return null;
 			return query && query.length <= 300 && !query.includes("<think") ? query : question;
 		} catch (err) {
 			if (signal?.aborted) throw err;
