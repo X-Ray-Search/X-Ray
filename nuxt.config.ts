@@ -48,7 +48,31 @@ export default defineNuxtConfig({
 	},
 
 	nitro: {
-		rollupConfig: { external: ["bun:sqlite"] },
+		rollupConfig: {
+			external: ["bun:sqlite"],
+
+			output: {
+				banner: (function () {
+					const mappings = {
+						XRAY_APP_URL: "APP_URL",
+					};
+
+					const bannerCode = `
+						(function () {
+							const mappings = ${JSON.stringify(mappings)};
+							const env = globalThis.process?.env ?? {};
+							for (const [envName, runtimeName] of Object.entries(mappings)) {
+								if (!env['NUXT_PUBLIC_' + runtimeName] && env[envName]) {
+									env['NUXT_PUBLIC_' + runtimeName] = env[envName];
+								}
+							}
+						})();
+					`;
+
+					return bannerCode.replace(/^\s+|\s+$/g, "").replace(/\n\s*/g, " ");
+				})(),
+			},
+		},
 
 		// server/ runs on Bun (bun:sqlite, Bun.password, …).
 		typescript: {
@@ -71,6 +95,7 @@ export default defineNuxtConfig({
 
 	runtimeConfig: {
 		public: {
+			//@ts-ignore
 			appUrl: process.env.XRAY_APP_URL || "http://localhost:12418",
 		},
 	},
